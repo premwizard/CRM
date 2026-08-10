@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Modal } from './modal';
-import { AlertTriangle } from 'lucide-react';
+import React from "react";
+import { Modal } from "./modal";
+import { AlertTriangle } from "lucide-react";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -13,7 +13,14 @@ interface ConfirmModalProps {
   loading?: boolean;
 }
 
-export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, loading }: ConfirmModalProps) {
+export function ConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  loading,
+}: ConfirmModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="space-y-4">
@@ -34,7 +41,7 @@ export function ConfirmModal({ isOpen, onClose, onConfirm, title, message, loadi
             disabled={loading}
             className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-semibold hover:bg-red-700 transition-colors shadow-xs"
           >
-            {loading ? 'Deleting...' : 'Confirm Delete'}
+            {loading ? "Deleting..." : "Confirm Delete"}
           </button>
         </div>
       </div>

@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { z } from 'zod';
-import { LeadSource, LeadStatus } from '@prisma/client';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { z } from "zod";
+import { LeadSource, LeadStatus } from "@prisma/client";
 
 const leadSchema = z.object({
-  name: z.string().min(1, 'Lead name is required'),
+  name: z.string().min(1, "Lead name is required"),
   email: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   company: z.string().optional().nullable(),
@@ -18,17 +18,17 @@ const leadSchema = z.object({
 // GET /api/v1/leads (list + search + status filter)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get('search') || '';
-    const status = request.nextUrl.searchParams.get('status');
+    const search = request.nextUrl.searchParams.get("search") || "";
+    const status = request.nextUrl.searchParams.get("status");
 
     const AND: Record<string, unknown>[] = [];
 
     if (search) {
       AND.push({
         OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
-          { company: { contains: search, mode: 'insensitive' as const } },
+          { name: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+          { company: { contains: search, mode: "insensitive" as const } },
         ],
       });
     }
@@ -41,12 +41,15 @@ export async function GET(request: NextRequest) {
 
     const leads = await db.lead.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiSuccess({ leads });
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to fetch leads', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch leads",
+      500,
+    );
   }
 }
 
@@ -57,15 +60,21 @@ export async function POST(request: NextRequest) {
     const parsed = leadSchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(parsed.error.errors[0]?.message || 'Invalid lead data', 400);
+      return apiError(
+        parsed.error.errors[0]?.message || "Invalid lead data",
+        400,
+      );
     }
 
     const lead = await db.lead.create({
       data: parsed.data,
     });
 
-    return apiSuccess({ lead }, 'Lead created successfully', 201);
+    return apiSuccess({ lead }, "Lead created successfully", 201);
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to create lead', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to create lead",
+      500,
+    );
   }
 }

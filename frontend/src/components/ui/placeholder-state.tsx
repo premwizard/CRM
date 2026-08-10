@@ -1,5 +1,5 @@
-import React from 'react';
-import { LucideIcon, Layers } from 'lucide-react';
+import React from "react";
+import { LucideIcon, Layers } from "lucide-react";
 
 interface PlaceholderStateProps {
   title: string;
@@ -22,7 +22,9 @@ export function PlaceholderState({
         <Icon className="w-6 h-6" />
       </div>
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-md mt-1 mb-6">{description}</p>
+      <p className="text-sm text-muted-foreground max-w-md mt-1 mb-6">
+        {description}
+      </p>
       {actionText && (
         <button
           onClick={onAction}

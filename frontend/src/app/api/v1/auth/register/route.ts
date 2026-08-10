@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { comparePassword, generateToken, hashPassword } from '@/lib/auth';
-import { z } from 'zod';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { comparePassword, generateToken, hashPassword } from "@/lib/auth";
+import { z } from "zod";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -20,12 +20,12 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const action = request.nextUrl.searchParams.get('action') || 'register';
+    const action = request.nextUrl.searchParams.get("action") || "register";
 
-    if (action === 'login') {
+    if (action === "login") {
       const parsed = loginSchema.safeParse(body);
       if (!parsed.success) {
-        return apiError('Invalid email or password input', 400);
+        return apiError("Invalid email or password input", 400);
       }
 
       const { email, password } = parsed.data;
@@ -40,32 +40,32 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         // Mock fallback for instant demo testing if DB isn't seeded
-        if (email === 'admin@iccrm.io' && password === 'password123') {
+        if (email === "admin@iccrm.io" && password === "password123") {
           const token = generateToken({
-            userId: 'usr_admin_demo',
-            email: 'admin@iccrm.io',
-            role: 'ADMIN',
+            userId: "usr_admin_demo",
+            email: "admin@iccrm.io",
+            role: "ADMIN",
           });
           return apiSuccess(
             {
               user: {
-                id: 'usr_admin_demo',
-                email: 'admin@iccrm.io',
-                firstName: 'Admin',
-                lastName: 'User',
-                role: 'ADMIN',
+                id: "usr_admin_demo",
+                email: "admin@iccrm.io",
+                firstName: "Admin",
+                lastName: "User",
+                role: "ADMIN",
               },
               token,
             },
-            'Login successful'
+            "Login successful",
           );
         }
-        return apiError('Invalid email or password credentials', 401);
+        return apiError("Invalid email or password credentials", 401);
       }
 
       const isMatch = await comparePassword(password, user.passwordHash);
       if (!isMatch) {
-        return apiError('Invalid email or password credentials', 401);
+        return apiError("Invalid email or password credentials", 401);
       }
 
       const token = generateToken({
@@ -75,13 +75,16 @@ export async function POST(request: NextRequest) {
       });
 
       const { passwordHash: _, ...safeUser } = user;
-      return apiSuccess({ user: safeUser, token }, 'Login successful');
+      return apiSuccess({ user: safeUser, token }, "Login successful");
     }
 
     // Default: Register
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      return apiError('Validation failed. Provide valid email, password (min 6 chars), first & last name.', 400);
+      return apiError(
+        "Validation failed. Provide valid email, password (min 6 chars), first & last name.",
+        400,
+      );
     }
 
     const { email, password, firstName, lastName } = parsed.data;
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
-      return apiError('User with this email already exists', 409);
+      return apiError("User with this email already exists", 409);
     }
 
     const hashedPassword = await hashPassword(password);
@@ -112,11 +115,11 @@ export async function POST(request: NextRequest) {
     } catch {
       // Fallback mock user if DB service is offline
       createdUser = {
-        id: 'usr_' + Math.random().toString(36).substring(2, 9),
+        id: "usr_" + Math.random().toString(36).substring(2, 9),
         email,
         firstName,
         lastName,
-        role: 'USER',
+        role: "USER",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -125,7 +128,7 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       userId: createdUser.id,
       email: createdUser.email,
-      role: 'role' in createdUser ? createdUser.role : 'USER',
+      role: "role" in createdUser ? createdUser.role : "USER",
     });
 
     const safeUser = {
@@ -133,11 +136,18 @@ export async function POST(request: NextRequest) {
       email: createdUser.email,
       firstName: createdUser.firstName,
       lastName: createdUser.lastName,
-      role: 'role' in createdUser ? createdUser.role : 'USER',
+      role: "role" in createdUser ? createdUser.role : "USER",
     };
 
-    return apiSuccess({ user: safeUser, token }, 'User registered successfully', 201);
+    return apiSuccess(
+      { user: safeUser, token },
+      "User registered successfully",
+      201,
+    );
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Internal auth error', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Internal auth error",
+      500,
+    );
   }
 }

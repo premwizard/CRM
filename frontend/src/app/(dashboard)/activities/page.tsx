@@ -1,12 +1,24 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { Activity, Search, Edit2, Trash2, Phone, Mail, Calendar, MessageSquare, Tag, User, DollarSign } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  Activity,
+  Search,
+  Edit2,
+  Trash2,
+  Phone,
+  Mail,
+  Calendar,
+  MessageSquare,
+  Tag,
+  User,
+  DollarSign,
+} from "lucide-react";
 
-const ACTIVITY_TYPES = ['CALL', 'EMAIL', 'MEETING', 'NOTE', 'OTHER'];
+const ACTIVITY_TYPES = ["CALL", "EMAIL", "MEETING", "NOTE", "OTHER"];
 
 interface ContactOption {
   id: string;
@@ -37,22 +49,24 @@ export default function ActivitiesPage() {
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [deals, setDeals] = useState<DealOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedType, setSelectedType] = useState('');
+  const [search, setSearch] = useState("");
+  const [selectedType, setSelectedType] = useState("");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(
+    null,
+  );
 
   // Form State
   const [formData, setFormData] = useState({
-    title: '',
-    type: 'CALL',
-    description: '',
-    contactId: '',
-    dealId: '',
-    performedBy: '',
+    title: "",
+    type: "CALL",
+    description: "",
+    contactId: "",
+    dealId: "",
+    performedBy: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -77,7 +91,10 @@ export default function ActivitiesPage() {
 
   const fetchOptions = async () => {
     try {
-      const [contRes, dealRes] = await Promise.all([fetch('/api/v1/contacts'), fetch('/api/v1/deals')]);
+      const [contRes, dealRes] = await Promise.all([
+        fetch("/api/v1/contacts"),
+        fetch("/api/v1/deals"),
+      ]);
       const contData = await contRes.json();
       const dealData = await dealRes.json();
 
@@ -102,12 +119,12 @@ export default function ActivitiesPage() {
   const handleOpenCreate = () => {
     setSelectedActivity(null);
     setFormData({
-      title: '',
-      type: 'CALL',
-      description: '',
-      contactId: '',
-      dealId: '',
-      performedBy: '',
+      title: "",
+      type: "CALL",
+      description: "",
+      contactId: "",
+      dealId: "",
+      performedBy: "",
     });
     setIsModalOpen(true);
   };
@@ -117,10 +134,10 @@ export default function ActivitiesPage() {
     setFormData({
       title: act.title,
       type: act.type,
-      description: act.description || '',
-      contactId: act.contactId || '',
-      dealId: act.dealId || '',
-      performedBy: act.performedBy || '',
+      description: act.description || "",
+      contactId: act.contactId || "",
+      dealId: act.dealId || "",
+      performedBy: act.performedBy || "",
     });
     setIsModalOpen(true);
   };
@@ -130,12 +147,14 @@ export default function ActivitiesPage() {
     setSaving(true);
 
     try {
-      const url = selectedActivity ? `/api/v1/activities/${selectedActivity.id}` : '/api/v1/activities';
-      const method = selectedActivity ? 'PUT' : 'POST';
+      const url = selectedActivity
+        ? `/api/v1/activities/${selectedActivity.id}`
+        : "/api/v1/activities";
+      const method = selectedActivity ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           contactId: formData.contactId || null,
@@ -160,7 +179,7 @@ export default function ActivitiesPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/activities/${selectedActivity.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -175,13 +194,13 @@ export default function ActivitiesPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'CALL':
+      case "CALL":
         return <Phone className="w-4 h-4 text-blue-500" />;
-      case 'EMAIL':
+      case "EMAIL":
         return <Mail className="w-4 h-4 text-purple-500" />;
-      case 'MEETING':
+      case "MEETING":
         return <Calendar className="w-4 h-4 text-emerald-500" />;
-      case 'NOTE':
+      case "NOTE":
         return <MessageSquare className="w-4 h-4 text-amber-500" />;
       default:
         return <Tag className="w-4 h-4 text-gray-500" />;
@@ -242,19 +261,29 @@ export default function ActivitiesPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading activity timeline...
                   </td>
                 </tr>
               ) : activities.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No activity logs recorded. Click "Log Activity" to record a phone call, meeting, or note.
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
+                    No activity logs recorded. Click "Log Activity" to record a
+                    phone call, meeting, or note.
                   </td>
                 </tr>
               ) : (
                 activities.map((act) => (
-                  <tr key={act.id} className="hover:bg-accent/40 transition-colors">
+                  <tr
+                    key={act.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
                     <td className="px-6 py-4 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
                         {getTypeIcon(act.type)}
@@ -280,7 +309,7 @@ export default function ActivitiesPage() {
                           </span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">
@@ -290,7 +319,7 @@ export default function ActivitiesPage() {
                           <span>{act.deal.name}</span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">
@@ -327,7 +356,11 @@ export default function ActivitiesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedActivity ? 'Edit Activity Log' : 'Log New Interaction Activity'}
+        title={
+          selectedActivity
+            ? "Edit Activity Log"
+            : "Log New Interaction Activity"
+        }
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -338,17 +371,23 @@ export default function ActivitiesPage() {
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               placeholder="e.g. Discovery call regarding enterprise pricing"
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Activity Type *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Activity Type *
+            </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {ACTIVITY_TYPES.map((t) => (
@@ -361,10 +400,14 @@ export default function ActivitiesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Related Contact</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Related Contact
+              </label>
               <select
                 value={formData.contactId}
-                onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, contactId: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">-- Unassigned --</option>
@@ -377,10 +420,14 @@ export default function ActivitiesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Related Deal</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Related Deal
+              </label>
               <select
                 value={formData.dealId}
-                onChange={(e) => setFormData({ ...formData, dealId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, dealId: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">-- Unassigned --</option>
@@ -394,11 +441,15 @@ export default function ActivitiesPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Detailed Notes</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Detailed Notes
+            </label>
             <textarea
               rows={3}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Record call outcomes, meeting notes, or follow-up points..."
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
@@ -417,7 +468,7 @@ export default function ActivitiesPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Logging...' : 'Save Activity'}
+              {saving ? "Logging..." : "Save Activity"}
             </button>
           </div>
         </form>

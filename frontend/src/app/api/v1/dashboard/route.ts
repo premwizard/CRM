@@ -1,5 +1,5 @@
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
 
 export async function GET() {
   try {
@@ -35,6 +35,11 @@ export async function GET() {
       },
     });
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Error fetching dashboard metrics', 500);
+    return apiError(
+      error instanceof Error
+        ? error.message
+        : "Error fetching dashboard metrics",
+      500,
+    );
   }
 }

@@ -1,5 +1,5 @@
-import React from 'react';
-import { LucideIcon, Plus } from 'lucide-react';
+import React from "react";
+import { LucideIcon, Plus } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
@@ -9,15 +9,25 @@ interface PageHeaderProps {
   icon?: LucideIcon;
 }
 
-export function PageHeader({ title, description, actionText, onAction, icon: Icon }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  actionText,
+  onAction,
+  icon: Icon,
+}: PageHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-border mb-6 gap-4">
       <div>
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-6 h-6 text-primary" />}
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {title}
+          </h1>
         </div>
-        {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        )}
       </div>
 
       {actionText && (

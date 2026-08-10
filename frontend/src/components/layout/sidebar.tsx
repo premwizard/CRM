@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -13,19 +13,19 @@ import {
   BarChart3,
   Settings,
   Shield,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Contacts', href: '/contacts', icon: Users },
-  { name: 'Companies', href: '/companies', icon: Building2 },
-  { name: 'Leads', href: '/leads', icon: Target },
-  { name: 'Deals', href: '/deals', icon: DollarSign },
-  { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-  { name: 'Activities', href: '/activities', icon: Activity },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Contacts", href: "/contacts", icon: Users },
+  { name: "Companies", href: "/companies", icon: Building2 },
+  { name: "Leads", href: "/leads", icon: Target },
+  { name: "Deals", href: "/deals", icon: DollarSign },
+  { name: "Tasks", href: "/tasks", icon: CheckSquare },
+  { name: "Activities", href: "/activities", icon: Activity },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -39,7 +39,9 @@ export function Sidebar() {
           IC
         </div>
         <div>
-          <span className="font-bold text-foreground text-lg tracking-tight">IC CRM</span>
+          <span className="font-bold text-foreground text-lg tracking-tight">
+            IC CRM
+          </span>
           <span className="block text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
             Enterprise Suite
           </span>
@@ -49,7 +51,9 @@ export function Sidebar() {
       {/* Main Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
           const Icon = item.icon;
 
           return (
@@ -57,13 +61,20 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                 isActive
-                  ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              <Icon className={cn('w-4 h-4', isActive ? 'text-primary-foreground' : 'text-muted-foreground')} />
+              <Icon
+                className={cn(
+                  "w-4 h-4",
+                  isActive
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground",
+                )}
+              />
               <span>{item.name}</span>
             </Link>
           );

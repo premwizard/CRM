@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { z } from 'zod';
-import { ActivityType } from '@prisma/client';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { z } from "zod";
+import { ActivityType } from "@prisma/client";
 
 const activitySchema = z.object({
-  title: z.string().min(1, 'Activity title is required'),
+  title: z.string().min(1, "Activity title is required"),
   type: z.nativeEnum(ActivityType).default(ActivityType.NOTE),
   description: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
@@ -16,16 +16,16 @@ const activitySchema = z.object({
 // GET /api/v1/activities (list + search + type filter)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get('search') || '';
-    const type = request.nextUrl.searchParams.get('type');
+    const search = request.nextUrl.searchParams.get("search") || "";
+    const type = request.nextUrl.searchParams.get("type");
 
     const AND: Record<string, unknown>[] = [];
 
     if (search) {
       AND.push({
         OR: [
-          { title: { contains: search, mode: 'insensitive' as const } },
-          { description: { contains: search, mode: 'insensitive' as const } },
+          { title: { contains: search, mode: "insensitive" as const } },
+          { description: { contains: search, mode: "insensitive" as const } },
         ],
       });
     }
@@ -42,13 +42,13 @@ export async function GET(request: NextRequest) {
         contact: { select: { id: true, firstName: true, lastName: true } },
         deal: { select: { id: true, name: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiSuccess({ activities });
   } catch (error) {
-    console.error('Activities fetch error:', error);
-    return apiSuccess({ activities: [] }, 'Database query fallback');
+    console.error("Activities fetch error:", error);
+    return apiSuccess({ activities: [] }, "Database query fallback");
   }
 }
 
@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
     const parsed = activitySchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(parsed.error.errors[0]?.message || 'Invalid activity input', 400);
+      return apiError(
+        parsed.error.errors[0]?.message || "Invalid activity input",
+        400,
+      );
     }
 
     const activity = await db.activity.create({
@@ -70,8 +73,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return apiSuccess({ activity }, 'Activity logged successfully', 201);
+    return apiSuccess({ activity }, "Activity logged successfully", 201);
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to log activity', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to log activity",
+      500,
+    );
   }
 }

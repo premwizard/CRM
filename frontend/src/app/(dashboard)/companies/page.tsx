@@ -1,10 +1,20 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { Building2, Search, Plus, Edit2, Trash2, Globe, Mail, Phone, MapPin } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  Building2,
+  Search,
+  Plus,
+  Edit2,
+  Trash2,
+  Globe,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
 
 interface Company {
   id: string;
@@ -21,7 +31,7 @@ interface Company {
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,13 +40,13 @@ export default function CompaniesPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    name: '',
-    industry: '',
-    website: '',
-    email: '',
-    phone: '',
-    address: '',
-    notes: '',
+    name: "",
+    industry: "",
+    website: "",
+    email: "",
+    phone: "",
+    address: "",
+    notes: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -44,7 +54,9 @@ export default function CompaniesPage() {
   const fetchCompanies = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/companies?search=${encodeURIComponent(search)}`);
+      const res = await fetch(
+        `/api/v1/companies?search=${encodeURIComponent(search)}`,
+      );
       const data = await res.json();
       if (data.success) {
         setCompanies(data.data.companies || []);
@@ -66,13 +78,13 @@ export default function CompaniesPage() {
   const handleOpenCreate = () => {
     setSelectedCompany(null);
     setFormData({
-      name: '',
-      industry: '',
-      website: '',
-      email: '',
-      phone: '',
-      address: '',
-      notes: '',
+      name: "",
+      industry: "",
+      website: "",
+      email: "",
+      phone: "",
+      address: "",
+      notes: "",
     });
     setIsModalOpen(true);
   };
@@ -81,12 +93,12 @@ export default function CompaniesPage() {
     setSelectedCompany(company);
     setFormData({
       name: company.name,
-      industry: company.industry || '',
-      website: company.website || '',
-      email: company.email || '',
-      phone: company.phone || '',
-      address: company.address || '',
-      notes: company.notes || '',
+      industry: company.industry || "",
+      website: company.website || "",
+      email: company.email || "",
+      phone: company.phone || "",
+      address: company.address || "",
+      notes: company.notes || "",
     });
     setIsModalOpen(true);
   };
@@ -96,12 +108,14 @@ export default function CompaniesPage() {
     setSaving(true);
 
     try {
-      const url = selectedCompany ? `/api/v1/companies/${selectedCompany.id}` : '/api/v1/companies';
-      const method = selectedCompany ? 'PUT' : 'POST';
+      const url = selectedCompany
+        ? `/api/v1/companies/${selectedCompany.id}`
+        : "/api/v1/companies";
+      const method = selectedCompany ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -122,7 +136,7 @@ export default function CompaniesPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/companies/${selectedCompany.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -176,24 +190,38 @@ export default function CompaniesPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading companies...
                   </td>
                 </tr>
               ) : companies.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No companies found. Click "Add Company" to register your first corporate account.
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
+                    No companies found. Click "Add Company" to register your
+                    first corporate account.
                   </td>
                 </tr>
               ) : (
                 companies.map((company) => (
-                  <tr key={company.id} className="hover:bg-accent/40 transition-colors">
+                  <tr
+                    key={company.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
                     <td className="px-6 py-4 font-semibold text-foreground">
                       <div>{company.name}</div>
                       {company.website && (
                         <a
-                          href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                          href={
+                            company.website.startsWith("http")
+                              ? company.website
+                              : `https://${company.website}`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-primary hover:underline flex items-center gap-1 font-normal mt-0.5"
@@ -209,7 +237,7 @@ export default function CompaniesPage() {
                           {company.industry}
                         </span>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs space-y-1">
@@ -233,12 +261,13 @@ export default function CompaniesPage() {
                           <span>{company.address}</span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs">
                       <span className="text-muted-foreground">
-                        {company._count?.contacts || 0} Contacts · {company._count?.deals || 0} Deals
+                        {company._count?.contacts || 0} Contacts ·{" "}
+                        {company._count?.deals || 0} Deals
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
@@ -272,37 +301,49 @@ export default function CompaniesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedCompany ? 'Edit Company' : 'Register New Company'}
+        title={selectedCompany ? "Edit Company" : "Register New Company"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Company Name *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Company Name *
+            </label>
             <input
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Industry</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Industry
+              </label>
               <input
                 type="text"
                 value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, industry: e.target.value })
+                }
                 placeholder="e.g. Technology"
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Website</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Website
+              </label>
               <input
                 type="text"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
                 placeholder="acme.com"
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -311,41 +352,57 @@ export default function CompaniesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Email</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Phone</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Phone
+              </label>
               <input
                 type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Address</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Address
+            </label>
             <input
               type="text"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Notes
+            </label>
             <textarea
               rows={3}
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -363,7 +420,7 @@ export default function CompaniesPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Saving...' : 'Save Company'}
+              {saving ? "Saving..." : "Save Company"}
             </button>
           </div>
         </form>

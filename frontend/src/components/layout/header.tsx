@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ThemeToggle } from '@/components/common/theme-toggle';
-import { useAuth } from '@/components/providers/auth-provider';
-import { Search, Bell, User, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import React from "react";
+import { ThemeToggle } from "@/components/common/theme-toggle";
+import { useAuth } from "@/components/providers/auth-provider";
+import { Search, Bell, User, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -12,7 +12,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push("/login");
   };
 
   return (
@@ -49,9 +49,11 @@ export function Header() {
             </div>
             <div className="text-left hidden sm:block">
               <p className="text-sm font-semibold leading-none text-foreground">
-                {user ? `${user.firstName} ${user.lastName}` : 'Admin User'}
+                {user ? `${user.firstName} ${user.lastName}` : "Admin User"}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{user?.email || 'admin@iccrm.io'}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {user?.email || "admin@iccrm.io"}
+              </p>
             </div>
           </div>
 

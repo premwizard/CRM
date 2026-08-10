@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { z } from 'zod';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { z } from "zod";
 
 const contactSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Valid email is required'),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
   phone: z.string().optional().nullable(),
   jobTitle: z.string().optional().nullable(),
   companyId: z.string().optional().nullable(),
@@ -16,15 +16,15 @@ const contactSchema = z.object({
 // GET /api/v1/contacts (list + search)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get('search') || '';
+    const search = request.nextUrl.searchParams.get("search") || "";
 
     const where = search
       ? {
           OR: [
-            { firstName: { contains: search, mode: 'insensitive' as const } },
-            { lastName: { contains: search, mode: 'insensitive' as const } },
-            { email: { contains: search, mode: 'insensitive' as const } },
-            { jobTitle: { contains: search, mode: 'insensitive' as const } },
+            { firstName: { contains: search, mode: "insensitive" as const } },
+            { lastName: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { jobTitle: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : {};
@@ -36,13 +36,16 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiSuccess({ contacts });
   } catch (error) {
-    console.error('Contacts fetch error:', error);
-    return apiSuccess({ contacts: [] }, 'Database offline, returning graceful empty list');
+    console.error("Contacts fetch error:", error);
+    return apiSuccess(
+      { contacts: [] },
+      "Database offline, returning graceful empty list",
+    );
   }
 }
 
@@ -53,7 +56,10 @@ export async function POST(request: NextRequest) {
     const parsed = contactSchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(parsed.error.errors[0]?.message || 'Invalid contact input', 400);
+      return apiError(
+        parsed.error.errors[0]?.message || "Invalid contact input",
+        400,
+      );
     }
 
     try {
@@ -63,18 +69,25 @@ export async function POST(request: NextRequest) {
           company: { select: { id: true, name: true } },
         },
       });
-      return apiSuccess({ contact }, 'Contact created successfully', 201);
+      return apiSuccess({ contact }, "Contact created successfully", 201);
     } catch {
       const mockContact = {
-        id: 'cont_' + Math.random().toString(36).substring(2, 9),
+        id: "cont_" + Math.random().toString(36).substring(2, 9),
         ...parsed.data,
         company: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      return apiSuccess({ contact: mockContact }, 'Contact created (mock mode)', 201);
+      return apiSuccess(
+        { contact: mockContact },
+        "Contact created (mock mode)",
+        201,
+      );
     }
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to create contact', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to create contact",
+      500,
+    );
   }
 }

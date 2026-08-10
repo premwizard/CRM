@@ -1,12 +1,27 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { DollarSign, Search, Edit2, Trash2, Building2, User, Calendar } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  DollarSign,
+  Search,
+  Edit2,
+  Trash2,
+  Building2,
+  User,
+  Calendar,
+} from "lucide-react";
 
-const DEAL_STAGES = ['NEW', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
+const DEAL_STAGES = [
+  "NEW",
+  "QUALIFIED",
+  "PROPOSAL",
+  "NEGOTIATION",
+  "WON",
+  "LOST",
+];
 
 interface CompanyOption {
   id: string;
@@ -37,8 +52,8 @@ export default function DealsPage() {
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedStage, setSelectedStage] = useState('');
+  const [search, setSearch] = useState("");
+  const [selectedStage, setSelectedStage] = useState("");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,13 +62,13 @@ export default function DealsPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    name: '',
-    companyId: '',
-    contactId: '',
+    name: "",
+    companyId: "",
+    contactId: "",
     value: 0,
-    stage: 'NEW',
-    expectedCloseDate: '',
-    notes: '',
+    stage: "NEW",
+    expectedCloseDate: "",
+    notes: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -79,7 +94,10 @@ export default function DealsPage() {
 
   const fetchOptions = async () => {
     try {
-      const [compRes, contRes] = await Promise.all([fetch('/api/v1/companies'), fetch('/api/v1/contacts')]);
+      const [compRes, contRes] = await Promise.all([
+        fetch("/api/v1/companies"),
+        fetch("/api/v1/contacts"),
+      ]);
       const compData = await compRes.json();
       const contData = await contRes.json();
 
@@ -104,13 +122,13 @@ export default function DealsPage() {
   const handleOpenCreate = () => {
     setSelectedDeal(null);
     setFormData({
-      name: '',
-      companyId: '',
-      contactId: '',
+      name: "",
+      companyId: "",
+      contactId: "",
       value: 0,
-      stage: 'NEW',
-      expectedCloseDate: '',
-      notes: '',
+      stage: "NEW",
+      expectedCloseDate: "",
+      notes: "",
     });
     setIsModalOpen(true);
   };
@@ -119,12 +137,14 @@ export default function DealsPage() {
     setSelectedDeal(deal);
     setFormData({
       name: deal.name,
-      companyId: deal.companyId || '',
-      contactId: deal.contactId || '',
+      companyId: deal.companyId || "",
+      contactId: deal.contactId || "",
       value: deal.value,
       stage: deal.stage,
-      expectedCloseDate: deal.expectedCloseDate ? new Date(deal.expectedCloseDate).toISOString().split('T')[0] : '',
-      notes: deal.notes || '',
+      expectedCloseDate: deal.expectedCloseDate
+        ? new Date(deal.expectedCloseDate).toISOString().split("T")[0]
+        : "",
+      notes: deal.notes || "",
     });
     setIsModalOpen(true);
   };
@@ -134,12 +154,14 @@ export default function DealsPage() {
     setSaving(true);
 
     try {
-      const url = selectedDeal ? `/api/v1/deals/${selectedDeal.id}` : '/api/v1/deals';
-      const method = selectedDeal ? 'PUT' : 'POST';
+      const url = selectedDeal
+        ? `/api/v1/deals/${selectedDeal.id}`
+        : "/api/v1/deals";
+      const method = selectedDeal ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           companyId: formData.companyId || null,
@@ -165,7 +187,7 @@ export default function DealsPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/deals/${selectedDeal.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -180,20 +202,20 @@ export default function DealsPage() {
 
   const getStageBadge = (stage: string) => {
     switch (stage) {
-      case 'NEW':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'QUALIFIED':
-        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
-      case 'PROPOSAL':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      case 'NEGOTIATION':
-        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'WON':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'LOST':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
+      case "NEW":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+      case "QUALIFIED":
+        return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
+      case "PROPOSAL":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "NEGOTIATION":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+      case "WON":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "LOST":
+        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -251,25 +273,39 @@ export default function DealsPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading deals...
                   </td>
                 </tr>
               ) : deals.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No deals found. Click "New Deal" to open a pipeline opportunity.
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
+                    No deals found. Click "New Deal" to open a pipeline
+                    opportunity.
                   </td>
                 </tr>
               ) : (
                 deals.map((deal) => (
-                  <tr key={deal.id} className="hover:bg-accent/40 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-foreground">{deal.name}</td>
+                  <tr
+                    key={deal.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
+                    <td className="px-6 py-4 font-semibold text-foreground">
+                      {deal.name}
+                    </td>
                     <td className="px-6 py-4 font-bold text-foreground">
-                      ${deal.value ? deal.value.toLocaleString() : '0'}
+                      ${deal.value ? deal.value.toLocaleString() : "0"}
                     </td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`px-2.5 py-1 rounded-md border font-semibold ${getStageBadge(deal.stage)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md border font-semibold ${getStageBadge(deal.stage)}`}
+                      >
                         {deal.stage}
                       </span>
                     </td>
@@ -293,10 +329,14 @@ export default function DealsPage() {
                       {deal.expectedCloseDate ? (
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
-                          <span>{new Date(deal.expectedCloseDate).toLocaleDateString()}</span>
+                          <span>
+                            {new Date(
+                              deal.expectedCloseDate,
+                            ).toLocaleDateString()}
+                          </span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
@@ -330,16 +370,20 @@ export default function DealsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedDeal ? 'Edit Deal' : 'Open New Deal'}
+        title={selectedDeal ? "Edit Deal" : "Open New Deal"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Deal Name *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Deal Name *
+            </label>
             <input
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -354,7 +398,12 @@ export default function DealsPage() {
                 min="0"
                 required
                 value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    value: parseFloat(e.target.value) || 0,
+                  })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -364,7 +413,9 @@ export default function DealsPage() {
               </label>
               <select
                 value={formData.stage}
-                onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, stage: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {DEAL_STAGES.map((st) => (
@@ -378,10 +429,14 @@ export default function DealsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Company</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Company
+              </label>
               <select
                 value={formData.companyId}
-                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyId: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">-- No Company --</option>
@@ -394,10 +449,14 @@ export default function DealsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Contact</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Contact
+              </label>
               <select
                 value={formData.contactId}
-                onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, contactId: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">-- No Contact --</option>
@@ -411,21 +470,29 @@ export default function DealsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Expected Close Date</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Expected Close Date
+            </label>
             <input
               type="date"
               value={formData.expectedCloseDate}
-              onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, expectedCloseDate: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Notes
+            </label>
             <textarea
               rows={3}
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -443,7 +510,7 @@ export default function DealsPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Saving...' : 'Save Deal'}
+              {saving ? "Saving..." : "Save Deal"}
             </button>
           </div>
         </form>

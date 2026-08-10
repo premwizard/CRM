@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const type = request.nextUrl.searchParams.get('type') || 'summary';
+    const type = request.nextUrl.searchParams.get("type") || "summary";
 
     let totalContacts = 0;
     let totalCompanies = 0;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       totalDealValue = dealAggregate._sum.value || 0;
 
       const leadGroup = await db.lead.groupBy({
-        by: ['status'],
+        by: ["status"],
         _count: { status: true },
       });
       leadGroup.forEach((g) => {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       });
 
       const dealGroup = await db.deal.groupBy({
-        by: ['stage'],
+        by: ["stage"],
         _count: { stage: true },
       });
       dealGroup.forEach((g) => {
@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     const generatedAt = new Date().toISOString();
 
     const report = {
-      reportId: 'REP-' + Math.floor(100000 + Math.random() * 900000),
-      title: 'Executive Sales & Pipeline Summary Report',
+      reportId: "REP-" + Math.floor(100000 + Math.random() * 900000),
+      title: "Executive Sales & Pipeline Summary Report",
       generatedAt,
       summary: {
         totalContacts,
@@ -67,8 +67,11 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    return apiSuccess({ report }, 'Sample report generated successfully');
+    return apiSuccess({ report }, "Sample report generated successfully");
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Error generating report', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Error generating report",
+      500,
+    );
   }
 }

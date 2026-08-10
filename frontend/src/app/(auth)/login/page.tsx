@@ -1,30 +1,30 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useAuth } from '@/components/providers/auth-provider';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useState } from "react";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('admin@iccrm.io');
-  const [password, setPassword] = useState('password123');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("admin@iccrm.io");
+  const [password, setPassword] = useState("password123");
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
 
     const result = await login(email, password);
     setSubmitting(false);
 
     if (result.success) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
-      setError(result.error || 'Failed to login');
+      setError(result.error || "Failed to login");
     }
   };
 
@@ -38,7 +38,9 @@ export default function LoginPage() {
           <span className="font-bold text-xl text-foreground">IC CRM</span>
         </div>
 
-        <h2 className="text-2xl font-bold text-center text-foreground">Sign In to IC CRM</h2>
+        <h2 className="text-2xl font-bold text-center text-foreground">
+          Sign In to IC CRM
+        </h2>
         <p className="text-sm text-center text-muted-foreground mt-1 mb-6">
           Enter your credentials to access your sales workspace
         </p>
@@ -51,7 +53,9 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Email Address</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               value={email}
@@ -62,7 +66,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Password</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -77,13 +83,16 @@ export default function LoginPage() {
             disabled={submitting}
             className="w-full bg-primary text-primary-foreground font-semibold py-2.5 rounded-md hover:bg-primary/90 transition-colors shadow-xs"
           >
-            {submitting ? 'Authenticating...' : 'Sign In'}
+            {submitting ? "Authenticating..." : "Sign In"}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
-          Don't have an account?{' '}
-          <Link href="/register" className="text-primary font-semibold hover:underline">
+          Don't have an account?{" "}
+          <Link
+            href="/register"
+            className="text-primary font-semibold hover:underline"
+          >
             Register here
           </Link>
         </div>

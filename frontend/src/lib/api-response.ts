@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -14,7 +14,7 @@ export function apiSuccess<T>(data: T, message?: string, status = 200) {
       message,
       data,
     },
-    { status }
+    { status },
   );
 }
 
@@ -24,6 +24,6 @@ export function apiError(error: string, status = 400) {
       success: false,
       error,
     },
-    { status }
+    { status },
   );
 }

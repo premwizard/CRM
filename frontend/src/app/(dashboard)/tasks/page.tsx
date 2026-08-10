@@ -1,13 +1,22 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { CheckSquare, Search, Edit2, Trash2, Calendar, User, Clock, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  CheckSquare,
+  Search,
+  Edit2,
+  Trash2,
+  Calendar,
+  User,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 
-const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-const TASK_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+const TASK_STATUSES = ["TODO", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
 interface TaskItem {
   id: string;
@@ -22,9 +31,9 @@ interface TaskItem {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedPriority, setSelectedPriority] = useState('');
+  const [search, setSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState("");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,12 +42,12 @@ export default function TasksPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    dueDate: '',
-    priority: 'MEDIUM',
-    status: 'TODO',
-    assignedTo: '',
+    title: "",
+    description: "",
+    dueDate: "",
+    priority: "MEDIUM",
+    status: "TODO",
+    assignedTo: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -72,12 +81,12 @@ export default function TasksPage() {
   const handleOpenCreate = () => {
     setSelectedTask(null);
     setFormData({
-      title: '',
-      description: '',
-      dueDate: '',
-      priority: 'MEDIUM',
-      status: 'TODO',
-      assignedTo: '',
+      title: "",
+      description: "",
+      dueDate: "",
+      priority: "MEDIUM",
+      status: "TODO",
+      assignedTo: "",
     });
     setIsModalOpen(true);
   };
@@ -86,11 +95,13 @@ export default function TasksPage() {
     setSelectedTask(task);
     setFormData({
       title: task.title,
-      description: task.description || '',
-      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+      description: task.description || "",
+      dueDate: task.dueDate
+        ? new Date(task.dueDate).toISOString().split("T")[0]
+        : "",
       priority: task.priority,
       status: task.status,
-      assignedTo: task.assignedTo || '',
+      assignedTo: task.assignedTo || "",
     });
     setIsModalOpen(true);
   };
@@ -100,12 +111,14 @@ export default function TasksPage() {
     setSaving(true);
 
     try {
-      const url = selectedTask ? `/api/v1/tasks/${selectedTask.id}` : '/api/v1/tasks';
-      const method = selectedTask ? 'PUT' : 'POST';
+      const url = selectedTask
+        ? `/api/v1/tasks/${selectedTask.id}`
+        : "/api/v1/tasks";
+      const method = selectedTask ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -126,7 +139,7 @@ export default function TasksPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/tasks/${selectedTask.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -141,27 +154,27 @@ export default function TasksPage() {
 
   const getPriorityBadge = (p: string) => {
     switch (p) {
-      case 'URGENT':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
-      case 'HIGH':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      case 'MEDIUM':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+      case "URGENT":
+        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+      case "HIGH":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "MEDIUM":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
   const getStatusBadge = (s: string) => {
     switch (s) {
-      case 'COMPLETED':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'IN_PROGRESS':
-        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'CANCELLED':
-        return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+      case "COMPLETED":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "IN_PROGRESS":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+      case "CANCELLED":
+        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -234,19 +247,29 @@ export default function TasksPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading tasks...
                   </td>
                 </tr>
               ) : tasks.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No tasks found. Click "Create Task" to schedule a to-do item.
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
+                    No tasks found. Click "Create Task" to schedule a to-do
+                    item.
                   </td>
                 </tr>
               ) : (
                 tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-accent/40 transition-colors">
+                  <tr
+                    key={task.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
                     <td className="px-6 py-4 font-semibold text-foreground">
                       <div>{task.title}</div>
                       {task.description && (
@@ -256,12 +279,16 @@ export default function TasksPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`px-2.5 py-1 rounded-md border font-semibold ${getPriorityBadge(task.priority)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md border font-semibold ${getPriorityBadge(task.priority)}`}
+                      >
                         {task.priority}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(task.status)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(task.status)}`}
+                      >
                         {task.status}
                       </span>
                     </td>
@@ -272,17 +299,19 @@ export default function TasksPage() {
                           <span>{task.assignedTo}</span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs text-muted-foreground">
                       {task.dueDate ? (
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-primary" />
-                          <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                          <span>
+                            {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
@@ -316,37 +345,49 @@ export default function TasksPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedTask ? 'Edit Task' : 'Create New Task'}
+        title={selectedTask ? "Edit Task" : "Create New Task"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Task Title *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Task Title *
+            </label>
             <input
               type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               placeholder="e.g. Follow up with client regarding proposal"
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Description</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Description
+            </label>
             <textarea
               rows={3}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Priority</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Priority
+              </label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {TASK_PRIORITIES.map((p) => (
@@ -358,10 +399,14 @@ export default function TasksPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Status</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Status
+              </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {TASK_STATUSES.map((st) => (
@@ -375,21 +420,29 @@ export default function TasksPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Due Date</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Due Date
+              </label>
               <input
                 type="date"
                 value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Assigned To</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Assigned To
+              </label>
               <input
                 type="text"
                 value={formData.assignedTo}
-                onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, assignedTo: e.target.value })
+                }
                 placeholder="e.g. Sales Rep Name"
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -409,7 +462,7 @@ export default function TasksPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Saving...' : 'Save Task'}
+              {saving ? "Saving..." : "Save Task"}
             </button>
           </div>
         </form>

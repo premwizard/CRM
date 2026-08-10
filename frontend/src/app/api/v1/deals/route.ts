@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { z } from 'zod';
-import { DealStage } from '@prisma/client';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { z } from "zod";
+import { DealStage } from "@prisma/client";
 
 const dealSchema = z.object({
-  name: z.string().min(1, 'Deal name is required'),
+  name: z.string().min(1, "Deal name is required"),
   companyId: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
   value: z.number().nonnegative().default(0),
@@ -17,14 +17,14 @@ const dealSchema = z.object({
 // GET /api/v1/deals (list + search + stage filter)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get('search') || '';
-    const stage = request.nextUrl.searchParams.get('stage');
+    const search = request.nextUrl.searchParams.get("search") || "";
+    const stage = request.nextUrl.searchParams.get("stage");
 
     const AND: Record<string, unknown>[] = [];
 
     if (search) {
       AND.push({
-        name: { contains: search, mode: 'insensitive' as const },
+        name: { contains: search, mode: "insensitive" as const },
       });
     }
 
@@ -40,12 +40,15 @@ export async function GET(request: NextRequest) {
         company: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiSuccess({ deals });
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to fetch deals', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch deals",
+      500,
+    );
   }
 }
 
@@ -56,7 +59,10 @@ export async function POST(request: NextRequest) {
     const parsed = dealSchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(parsed.error.errors[0]?.message || 'Invalid deal data', 400);
+      return apiError(
+        parsed.error.errors[0]?.message || "Invalid deal data",
+        400,
+      );
     }
 
     const { expectedCloseDate, ...restData } = parsed.data;
@@ -64,7 +70,9 @@ export async function POST(request: NextRequest) {
     const deal = await db.deal.create({
       data: {
         ...restData,
-        expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : null,
+        expectedCloseDate: expectedCloseDate
+          ? new Date(expectedCloseDate)
+          : null,
       },
       include: {
         company: { select: { id: true, name: true } },
@@ -72,8 +80,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return apiSuccess({ deal }, 'Deal created successfully', 201);
+    return apiSuccess({ deal }, "Deal created successfully", 201);
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to create deal', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to create deal",
+      500,
+    );
   }
 }

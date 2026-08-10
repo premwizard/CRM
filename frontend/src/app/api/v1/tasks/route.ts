@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { apiSuccess, apiError } from '@/lib/api-response';
-import { db } from '@/lib/db';
-import { z } from 'zod';
-import { TaskPriority, TaskStatus } from '@prisma/client';
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api-response";
+import { db } from "@/lib/db";
+import { z } from "zod";
+import { TaskPriority, TaskStatus } from "@prisma/client";
 
 const taskSchema = z.object({
-  title: z.string().min(1, 'Task title is required'),
+  title: z.string().min(1, "Task title is required"),
   description: z.string().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
@@ -16,17 +16,17 @@ const taskSchema = z.object({
 // GET /api/v1/tasks
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get('search') || '';
-    const status = request.nextUrl.searchParams.get('status');
-    const priority = request.nextUrl.searchParams.get('priority');
+    const search = request.nextUrl.searchParams.get("search") || "";
+    const status = request.nextUrl.searchParams.get("status");
+    const priority = request.nextUrl.searchParams.get("priority");
 
     const AND: Record<string, unknown>[] = [];
 
     if (search) {
       AND.push({
         OR: [
-          { title: { contains: search, mode: 'insensitive' as const } },
-          { description: { contains: search, mode: 'insensitive' as const } },
+          { title: { contains: search, mode: "insensitive" as const } },
+          { description: { contains: search, mode: "insensitive" as const } },
         ],
       });
     }
@@ -35,7 +35,10 @@ export async function GET(request: NextRequest) {
       AND.push({ status: status as TaskStatus });
     }
 
-    if (priority && Object.values(TaskPriority).includes(priority as TaskPriority)) {
+    if (
+      priority &&
+      Object.values(TaskPriority).includes(priority as TaskPriority)
+    ) {
       AND.push({ priority: priority as TaskPriority });
     }
 
@@ -43,13 +46,13 @@ export async function GET(request: NextRequest) {
 
     const tasks = await db.task.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiSuccess({ tasks });
   } catch (error) {
-    console.error('Tasks fetch error:', error);
-    return apiSuccess({ tasks: [] }, 'Database query fallback');
+    console.error("Tasks fetch error:", error);
+    return apiSuccess({ tasks: [] }, "Database query fallback");
   }
 }
 
@@ -60,7 +63,10 @@ export async function POST(request: NextRequest) {
     const parsed = taskSchema.safeParse(body);
 
     if (!parsed.success) {
-      return apiError(parsed.error.errors[0]?.message || 'Invalid task input', 400);
+      return apiError(
+        parsed.error.errors[0]?.message || "Invalid task input",
+        400,
+      );
     }
 
     const { dueDate, ...restData } = parsed.data;
@@ -71,8 +77,11 @@ export async function POST(request: NextRequest) {
         dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
-    return apiSuccess({ task }, 'Task created successfully', 201);
+    return apiSuccess({ task }, "Task created successfully", 201);
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Failed to create task', 500);
+    return apiError(
+      error instanceof Error ? error.message : "Failed to create task",
+      500,
+    );
   }
 }

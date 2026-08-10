@@ -1,13 +1,29 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { Target, Search, Edit2, Trash2, Mail, Phone, DollarSign } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  Target,
+  Search,
+  Edit2,
+  Trash2,
+  Mail,
+  Phone,
+  DollarSign,
+} from "lucide-react";
 
-const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'CONVERTED'];
-const LEAD_SOURCES = ['WEBSITE', 'LINKEDIN', 'REFERRAL', 'EMAIL', 'ADVERTISEMENT', 'COLD_CALL', 'OTHER'];
+const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "LOST", "CONVERTED"];
+const LEAD_SOURCES = [
+  "WEBSITE",
+  "LINKEDIN",
+  "REFERRAL",
+  "EMAIL",
+  "ADVERTISEMENT",
+  "COLD_CALL",
+  "OTHER",
+];
 
 interface Lead {
   id: string;
@@ -24,8 +40,8 @@ interface Lead {
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [search, setSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,14 +50,14 @@ export default function LeadsPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-    source: 'WEBSITE',
-    status: 'NEW',
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    source: "WEBSITE",
+    status: "NEW",
     value: 0,
-    notes: '',
+    notes: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -75,14 +91,14 @@ export default function LeadsPage() {
   const handleOpenCreate = () => {
     setSelectedLead(null);
     setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      company: '',
-      source: 'WEBSITE',
-      status: 'NEW',
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      source: "WEBSITE",
+      status: "NEW",
       value: 0,
-      notes: '',
+      notes: "",
     });
     setIsModalOpen(true);
   };
@@ -91,13 +107,13 @@ export default function LeadsPage() {
     setSelectedLead(lead);
     setFormData({
       name: lead.name,
-      email: lead.email || '',
-      phone: lead.phone || '',
-      company: lead.company || '',
+      email: lead.email || "",
+      phone: lead.phone || "",
+      company: lead.company || "",
       source: lead.source,
       status: lead.status,
       value: lead.value,
-      notes: lead.notes || '',
+      notes: lead.notes || "",
     });
     setIsModalOpen(true);
   };
@@ -107,12 +123,14 @@ export default function LeadsPage() {
     setSaving(true);
 
     try {
-      const url = selectedLead ? `/api/v1/leads/${selectedLead.id}` : '/api/v1/leads';
-      const method = selectedLead ? 'PUT' : 'POST';
+      const url = selectedLead
+        ? `/api/v1/leads/${selectedLead.id}`
+        : "/api/v1/leads";
+      const method = selectedLead ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           value: Number(formData.value) || 0,
@@ -136,7 +154,7 @@ export default function LeadsPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/leads/${selectedLead.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -151,18 +169,18 @@ export default function LeadsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'NEW':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'CONTACTED':
-        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-      case 'QUALIFIED':
-        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'CONVERTED':
-        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-      case 'LOST':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20';
+      case "NEW":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+      case "CONTACTED":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+      case "QUALIFIED":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+      case "CONVERTED":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+      case "LOST":
+        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
       default:
-        return 'bg-secondary text-secondary-foreground';
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -221,19 +239,28 @@ export default function LeadsPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading leads...
                   </td>
                 </tr>
               ) : leads.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     No leads found. Click "Capture Lead" to create a record.
                   </td>
                 </tr>
               ) : (
                 leads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-accent/40 transition-colors">
+                  <tr
+                    key={lead.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
                     <td className="px-6 py-4 font-semibold text-foreground">
                       <div>{lead.name}</div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground font-normal mt-0.5">
@@ -251,15 +278,21 @@ export default function LeadsPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-foreground">{lead.company || '—'}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-foreground">
+                      {lead.company || "—"}
+                    </td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(lead.status)}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(lead.status)}`}
+                      >
                         {lead.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{lead.source}</td>
+                    <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
+                      {lead.source}
+                    </td>
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      ${lead.value ? lead.value.toLocaleString() : '0'}
+                      ${lead.value ? lead.value.toLocaleString() : "0"}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
@@ -292,36 +325,48 @@ export default function LeadsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedLead ? 'Edit Lead' : 'Capture New Lead'}
+        title={selectedLead ? "Edit Lead" : "Capture New Lead"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Lead Name *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Lead Name *
+            </label>
             <input
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Email</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Phone</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Phone
+              </label>
               <input
                 type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -329,11 +374,15 @@ export default function LeadsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Company</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Company
+              </label>
               <input
                 type="text"
                 value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -345,7 +394,12 @@ export default function LeadsPage() {
                 type="number"
                 min="0"
                 value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    value: parseFloat(e.target.value) || 0,
+                  })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -353,10 +407,14 @@ export default function LeadsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Lead Source</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Lead Source
+              </label>
               <select
                 value={formData.source}
-                onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, source: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {LEAD_SOURCES.map((src) => (
@@ -367,10 +425,14 @@ export default function LeadsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Lead Status</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Lead Status
+              </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {LEAD_STATUSES.map((st) => (
@@ -383,11 +445,15 @@ export default function LeadsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Notes
+            </label>
             <textarea
               rows={3}
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -405,7 +471,7 @@ export default function LeadsPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Saving...' : 'Save Lead'}
+              {saving ? "Saving..." : "Save Lead"}
             </button>
           </div>
         </form>

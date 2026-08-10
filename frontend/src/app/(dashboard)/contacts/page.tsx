@@ -1,10 +1,19 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Modal } from '@/components/ui/modal';
-import { ConfirmModal } from '@/components/ui/confirm-modal';
-import { Users, Search, Edit2, Trash2, Mail, Phone, Building2, Briefcase } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  Users,
+  Search,
+  Edit2,
+  Trash2,
+  Mail,
+  Phone,
+  Building2,
+  Briefcase,
+} from "lucide-react";
 
 interface CompanyOption {
   id: string;
@@ -27,7 +36,7 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,13 +45,13 @@ export default function ContactsPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    jobTitle: '',
-    companyId: '',
-    notes: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    jobTitle: "",
+    companyId: "",
+    notes: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -50,7 +59,9 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/contacts?search=${encodeURIComponent(search)}`);
+      const res = await fetch(
+        `/api/v1/contacts?search=${encodeURIComponent(search)}`,
+      );
       const data = await res.json();
       if (data.success) {
         setContacts(data.data.contacts || []);
@@ -64,7 +75,7 @@ export default function ContactsPage() {
 
   const fetchCompanyOptions = async () => {
     try {
-      const res = await fetch('/api/v1/companies');
+      const res = await fetch("/api/v1/companies");
       const data = await res.json();
       if (data.success) {
         setCompanies(data.data.companies || []);
@@ -88,13 +99,13 @@ export default function ContactsPage() {
   const handleOpenCreate = () => {
     setSelectedContact(null);
     setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      jobTitle: '',
-      companyId: '',
-      notes: '',
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      jobTitle: "",
+      companyId: "",
+      notes: "",
     });
     setIsModalOpen(true);
   };
@@ -105,10 +116,10 @@ export default function ContactsPage() {
       firstName: contact.firstName,
       lastName: contact.lastName,
       email: contact.email,
-      phone: contact.phone || '',
-      jobTitle: contact.jobTitle || '',
-      companyId: contact.companyId || '',
-      notes: contact.notes || '',
+      phone: contact.phone || "",
+      jobTitle: contact.jobTitle || "",
+      companyId: contact.companyId || "",
+      notes: contact.notes || "",
     });
     setIsModalOpen(true);
   };
@@ -118,12 +129,14 @@ export default function ContactsPage() {
     setSaving(true);
 
     try {
-      const url = selectedContact ? `/api/v1/contacts/${selectedContact.id}` : '/api/v1/contacts';
-      const method = selectedContact ? 'PUT' : 'POST';
+      const url = selectedContact
+        ? `/api/v1/contacts/${selectedContact.id}`
+        : "/api/v1/contacts";
+      const method = selectedContact ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           companyId: formData.companyId || null,
@@ -147,7 +160,7 @@ export default function ContactsPage() {
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/contacts/${selectedContact.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       setSaving(false);
       if (res.ok) {
@@ -200,19 +213,28 @@ export default function ContactsPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     Loading contacts...
                   </td>
                 </tr>
               ) : contacts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-muted-foreground"
+                  >
                     No contacts found. Click "Add Contact" to create a record.
                   </td>
                 </tr>
               ) : (
                 contacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-accent/40 transition-colors">
+                  <tr
+                    key={contact.id}
+                    className="hover:bg-accent/40 transition-colors"
+                  >
                     <td className="px-6 py-4 font-semibold text-foreground">
                       {contact.firstName} {contact.lastName}
                     </td>
@@ -223,7 +245,7 @@ export default function ContactsPage() {
                           <span>{contact.jobTitle}</span>
                         </div>
                       ) : (
-                        '—'
+                        "—"
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs font-medium">
@@ -233,7 +255,9 @@ export default function ContactsPage() {
                           <span>{contact.company.name}</span>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground font-normal">Unassigned</span>
+                        <span className="text-muted-foreground font-normal">
+                          Unassigned
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-xs space-y-1">
@@ -279,69 +303,93 @@ export default function ContactsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedContact ? 'Edit Contact' : 'Create Contact'}
+        title={selectedContact ? "Edit Contact" : "Create Contact"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">First Name *</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                First Name *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Last Name *</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Last Name *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Email Address *</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Email Address *
+            </label>
             <input
               type="email"
               required
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Phone</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Phone
+              </label>
               <input
                 type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Job Title</label>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Job Title
+              </label>
               <input
                 type="text"
                 value={formData.jobTitle}
-                onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, jobTitle: e.target.value })
+                }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Associated Company</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Associated Company
+            </label>
             <select
               value={formData.companyId}
-              onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, companyId: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">-- No Company Association --</option>
@@ -354,11 +402,15 @@ export default function ContactsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Notes</label>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Notes
+            </label>
             <textarea
               rows={3}
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -376,7 +428,7 @@ export default function ContactsPage() {
               disabled={saving}
               className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-md text-sm hover:bg-primary/90 transition-colors shadow-xs"
             >
-              {saving ? 'Saving...' : 'Save Contact'}
+              {saving ? "Saving..." : "Save Contact"}
             </button>
           </div>
         </form>
