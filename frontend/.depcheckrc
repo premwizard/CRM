@@ -1,0 +1,25 @@
+{
+  "ignores": [
+    ".next",
+    "node_modules",
+    "dist",
+    "public",
+    "coverage",
+    "eslint.config.mjs",
+    "tailwind.config.js",
+    "postcss.config.js",
+    "next.config.mjs",
+    "@types/node",
+    "@types/react-dom",
+    "autoprefixer",
+    "eslint",
+    "eslint-config-next",
+    "postcss",
+    "tailwindcss",
+    "tsx",
+    "typescript",
+    "class-variance-authority",
+    "framer-motion",
+    "sonner"
+  ]
+}
