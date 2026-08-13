@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../config/db";
-import { DealStage, ActivityType } from "@prisma/client";
+import { DealStage, ForecastCategory, ActivityType } from "@prisma/client";
 
 const router = Router();
 
@@ -22,6 +22,68 @@ const defaultProbabilityForStage = (stage: DealStage): number => {
       return 50;
   }
 };
+
+const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
+  switch (stage) {
+    case DealStage.WON:
+    case DealStage.LOST:
+      return ForecastCategory.CLOSED;
+    case DealStage.NEGOTIATION:
+    case DealStage.PROPOSAL:
+      return ForecastCategory.COMMIT;
+    default:
+      return ForecastCategory.OPEN;
+  }
+};
+
+// GET /api/v1/deals/forecast
+router.get("/forecast", async (req, res) => {
+  try {
+    const deals = await db.deal.findMany({
+      select: {
+        id: true,
+        name: true,
+        value: true,
+        stage: true,
+        probability: true,
+        forecastCategory: true,
+        owner: true,
+        expectedCloseDate: true,
+      },
+    });
+
+    let totalPipeline = 0;
+    let weightedPipeline = 0;
+    let wonRevenue = 0;
+    let lostRevenue = 0;
+
+    deals.forEach((deal) => {
+      const val = deal.value || 0;
+      const prob = deal.probability ?? 50;
+      const weighted = val * (prob / 100);
+
+      totalPipeline += val;
+      weightedPipeline += weighted;
+
+      if (deal.stage === DealStage.WON) wonRevenue += val;
+      if (deal.stage === DealStage.LOST) lostRevenue += val;
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        metrics: {
+          totalPipeline,
+          weightedPipeline,
+          wonRevenue,
+          lostRevenue,
+        },
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Failed to generate forecast" });
+  }
+});
 
 // GET /api/v1/deals
 router.get("/", async (req, res) => {
@@ -56,14 +118,16 @@ router.get("/", async (req, res) => {
 // POST /api/v1/deals
 router.post("/", async (req, res) => {
   try {
-    const { expectedCloseDate, probability, stage, ...restData } = req.body;
+    const { expectedCloseDate, probability, forecastCategory, stage, ...restData } = req.body;
     const calcProb = probability ?? defaultProbabilityForStage(stage || DealStage.NEW);
+    const calcCat = forecastCategory ?? defaultCategoryForStage(stage || DealStage.NEW);
 
     const deal = await db.deal.create({
       data: {
         ...restData,
         stage: stage || DealStage.NEW,
         probability: calcProb,
+        forecastCategory: calcCat,
         expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : null,
       },
       include: {
@@ -88,11 +152,16 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ success: false, error: "Deal not found" });
     }
 
-    const { expectedCloseDate, stage, probability, ...restData } = req.body;
+    const { expectedCloseDate, stage, probability, forecastCategory, ...restData } = req.body;
 
     let updatedProbability = probability;
     if (stage && stage !== existingDeal.stage && probability === undefined) {
       updatedProbability = defaultProbabilityForStage(stage as DealStage);
+    }
+
+    let updatedCategory = forecastCategory;
+    if (stage && stage !== existingDeal.stage && forecastCategory === undefined) {
+      updatedCategory = defaultCategoryForStage(stage as DealStage);
     }
 
     const deal = await db.deal.update({
@@ -101,6 +170,7 @@ router.put("/:id", async (req, res) => {
         ...restData,
         stage: stage || existingDeal.stage,
         probability: updatedProbability !== undefined ? updatedProbability : existingDeal.probability,
+        forecastCategory: updatedCategory !== undefined ? updatedCategory : existingDeal.forecastCategory,
         expectedCloseDate: expectedCloseDate !== undefined
           ? (expectedCloseDate ? new Date(expectedCloseDate) : null)
           : existingDeal.expectedCloseDate,

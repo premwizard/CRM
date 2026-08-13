@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
+import { SalesForecastAnalytics } from "@/components/deals/sales-forecast-analytics";
 import {
   PipelineBarChart,
   LeadStatusPieChart,
@@ -24,6 +25,7 @@ import {
   Briefcase,
   Calendar,
   ArrowUpRight,
+  TrendingUp,
 } from "lucide-react";
 
 interface FollowUpItem {
@@ -46,6 +48,7 @@ export default function DashboardPage() {
     totalLeads: 0,
     totalDeals: 0,
     totalDealValue: 0,
+    weightedDealValue: 0,
   });
   const [todaysFollowUps, setTodaysFollowUps] = useState<FollowUpItem[]>([]);
   const [pipelineChartData, setPipelineChartData] = useState<
@@ -69,21 +72,30 @@ export default function DashboardPage() {
       const dealsData = await dealsRes.json();
       const leadsData = await leadsRes.json();
 
-      if (dashData.success && dashData.data?.metrics) {
-        setMetrics(dashData.data.metrics);
-        setTodaysFollowUps(dashData.data.todaysFollowUps || []);
-      }
+      let weightedSum = 0;
 
-      // Compute live stage pipeline chart
+      // Compute live stage pipeline chart and weighted pipeline
       if (dealsData.success && dealsData.data?.deals) {
         const stageMap: Record<string, number> = {};
-        dealsData.data.deals.forEach((d: { stage: string; value: number }) => {
-          stageMap[d.stage] = (stageMap[d.stage] || 0) + (d.value || 0);
-        });
+        dealsData.data.deals.forEach(
+          (d: { stage: string; value: number; probability?: number }) => {
+            stageMap[d.stage] = (stageMap[d.stage] || 0) + (d.value || 0);
+            const prob = d.probability ?? 50;
+            weightedSum += (d.value || 0) * (prob / 100);
+          },
+        );
         const formattedPipeline = Object.entries(stageMap).map(
           ([stage, value]) => ({ stage, value }),
         );
         setPipelineChartData(formattedPipeline);
+      }
+
+      if (dashData.success && dashData.data?.metrics) {
+        setMetrics({
+          ...dashData.data.metrics,
+          weightedDealValue: weightedSum,
+        });
+        setTodaysFollowUps(dashData.data.todaysFollowUps || []);
       }
 
       // Compute live lead status pie chart
@@ -129,6 +141,12 @@ export default function DashboardPage() {
     maximumFractionDigits: 0,
   }).format(metrics.totalDealValue);
 
+  const formattedWeightedValue = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(metrics.weightedDealValue);
+
   const getPriorityBadgeClass = (priority: string) => {
     switch (priority) {
       case "URGENT":
@@ -146,8 +164,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <PageHeader
-          title="Dashboard Overview"
-          description="Live CRM metrics, customer follow-up schedule, and sales analytics."
+          title="Executive Dashboard & Sales Forecast"
+          description="Live CRM metrics, weighted pipeline forecasting, follow-up schedule, and analytics."
         />
         <button
           onClick={fetchMetrics}
@@ -161,7 +179,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           title="Total Contacts"
           value={loading ? "..." : metrics.totalContacts}
@@ -183,11 +201,19 @@ export default function DashboardPage() {
           icon={Activity}
         />
         <StatCard
-          title="Pipeline Value"
+          title="Total Pipeline"
           value={loading ? "..." : formattedDealValue}
           icon={DollarSign}
         />
+        <StatCard
+          title="Weighted Pipeline 🎯"
+          value={loading ? "..." : formattedWeightedValue}
+          icon={TrendingUp}
+        />
       </div>
+
+      {/* Sales Forecast Matrix Component */}
+      <SalesForecastAnalytics />
 
       {/* Today's Follow-ups Section Widget */}
       <div className="bg-card p-6 rounded-lg border border-border space-y-4 shadow-xs">
@@ -249,7 +275,6 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex items-center flex-wrap gap-4 text-xs text-muted-foreground">
-                    {/* Customer Link */}
                     {item.contact ? (
                       <Link
                         href={`/contacts/${item.contact.id}`}
@@ -276,7 +301,6 @@ export default function DashboardPage() {
                       </Link>
                     ) : null}
 
-                    {/* Deal Link */}
                     {item.deal && (
                       <Link
                         href={`/deals/${item.deal.id}`}
@@ -288,7 +312,6 @@ export default function DashboardPage() {
                       </Link>
                     )}
 
-                    {/* Due Time / Date */}
                     {item.dueDate && (
                       <div className="flex items-center gap-1 font-medium text-foreground">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
@@ -304,7 +327,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <button
                   onClick={() => handleCompleteTask(item.id)}
                   className="px-3 py-1.5 bg-green-500/10 text-green-600 hover:bg-green-500/20 border border-green-500/20 text-xs font-semibold rounded-md transition-colors shrink-0 flex items-center gap-1.5"
@@ -320,7 +342,6 @@ export default function DashboardPage() {
 
       {/* Interactive Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Deal Pipeline Bar Chart */}
         <div className="lg:col-span-2 p-6 rounded-lg border border-border bg-card shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
@@ -336,7 +357,6 @@ export default function DashboardPage() {
           <PipelineBarChart data={pipelineChartData} />
         </div>
 
-        {/* Lead Status Pie Chart */}
         <div className="p-6 rounded-lg border border-border bg-card shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">

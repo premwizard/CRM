@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { DealStage } from "@prisma/client";
+import { DealStage, ForecastCategory } from "@prisma/client";
 
 const dealSchema = z.object({
   name: z.string().min(1, "Deal name is required"),
@@ -11,6 +11,7 @@ const dealSchema = z.object({
   value: z.number().nonnegative().default(0),
   stage: z.nativeEnum(DealStage).default(DealStage.NEW),
   probability: z.number().min(0).max(100).optional(),
+  forecastCategory: z.nativeEnum(ForecastCategory).optional(),
   owner: z.string().optional().nullable(),
   expectedCloseDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -32,6 +33,19 @@ const defaultProbabilityForStage = (stage: DealStage): number => {
       return 0;
     default:
       return 50;
+  }
+};
+
+const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
+  switch (stage) {
+    case DealStage.WON:
+    case DealStage.LOST:
+      return ForecastCategory.CLOSED;
+    case DealStage.NEGOTIATION:
+    case DealStage.PROPOSAL:
+      return ForecastCategory.COMMIT;
+    default:
+      return ForecastCategory.OPEN;
   }
 };
 
@@ -87,14 +101,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { expectedCloseDate, probability, stage, ...restData } = parsed.data;
+    const {
+      expectedCloseDate,
+      probability,
+      forecastCategory,
+      stage,
+      ...restData
+    } = parsed.data;
+
     const calcProb = probability ?? defaultProbabilityForStage(stage);
+    const calcCat = forecastCategory ?? defaultCategoryForStage(stage);
 
     const deal = await db.deal.create({
       data: {
         ...restData,
         stage,
         probability: calcProb,
+        forecastCategory: calcCat,
         expectedCloseDate: expectedCloseDate
           ? new Date(expectedCloseDate)
           : null,

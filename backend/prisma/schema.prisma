@@ -48,6 +48,13 @@ enum DealStage {
   LOST
 }
 
+enum ForecastCategory {
+  OPEN
+  COMMIT
+  BEST_CASE
+  CLOSED
+}
+
 enum TaskPriority {
   LOW
   MEDIUM
@@ -205,6 +212,7 @@ model Deal {
   value             Float              @default(0)
   stage             DealStage          @default(NEW)
   probability       Int?               @default(50)
+  forecastCategory  ForecastCategory   @default(OPEN)
   owner             String?
   expectedCloseDate DateTime?
   notes             String?
@@ -217,6 +225,7 @@ model Deal {
   updatedAt         DateTime           @updatedAt
 
   @@index([stage])
+  @@index([forecastCategory])
   @@index([companyId])
   @@index([contactId])
   @@index([name])

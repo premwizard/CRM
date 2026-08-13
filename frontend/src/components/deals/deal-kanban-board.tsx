@@ -13,6 +13,8 @@ import {
   Eye,
   Plus,
   Percent,
+  TrendingUp,
+  Layers,
 } from "lucide-react";
 
 export interface KanbanDeal {
@@ -21,6 +23,7 @@ export interface KanbanDeal {
   value: number;
   stage: string;
   probability?: number | null;
+  forecastCategory?: string | null;
   owner?: string | null;
   expectedCloseDate?: string | null;
   companyId?: string | null;
@@ -61,6 +64,12 @@ export function DealKanbanBoard({
     0,
   );
 
+  const weightedPipelineValue = deals.reduce((sum, deal) => {
+    const val = deal.value || 0;
+    const prob = deal.probability ?? 50;
+    return sum + val * (prob / 100);
+  }, 0);
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -97,27 +106,58 @@ export function DealKanbanBoard({
     setDraggedDealId(null);
   };
 
+  const getCategoryBadgeClass = (category?: string | null) => {
+    switch (category) {
+      case "COMMIT":
+        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-bold";
+      case "BEST_CASE":
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "CLOSED":
+        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+      default:
+        return "bg-slate-500/10 text-slate-600 border-slate-500/20";
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Total Pipeline Header Card */}
-      <div className="bg-card p-4 rounded-lg border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Pipeline Volume
+      {/* Total & Weighted Pipeline Header Card */}
+      <div className="bg-card p-4 rounded-lg border border-border flex flex-col md:flex-row items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+              <DollarSign className="w-5 h-5" />
             </div>
-            <div className="text-xl font-extrabold text-foreground">
-              {formatCurrency(totalPipelineValue)}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Total Pipeline
+              </div>
+              <div className="text-xl font-extrabold text-foreground">
+                {formatCurrency(totalPipelineValue)}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-border hidden sm:block" />
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-wider text-amber-700">
+                Weighted Pipeline
+              </div>
+              <div className="text-xl font-extrabold text-amber-900">
+                {formatCurrency(weightedPipelineValue)}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-6 text-xs text-muted-foreground font-medium">
           <div>
-            Total Deals:{" "}
+            Total Opportunities:{" "}
             <span className="font-bold text-foreground">{deals.length}</span>
           </div>
           <div>
@@ -135,6 +175,12 @@ export function DealKanbanBoard({
             (sum, d) => sum + (d.value || 0),
             0,
           );
+          const stageWeighted = stageDeals.reduce((sum, d) => {
+            const val = d.value || 0;
+            const prob = d.probability ?? 50;
+            return sum + val * (prob / 100);
+          }, 0);
+
           const isOver = dragOverStage === stage.id;
 
           return (
@@ -165,6 +211,9 @@ export function DealKanbanBoard({
                 <div className="text-xs font-bold text-foreground pt-1">
                   {formatCurrency(stageTotal)}
                 </div>
+                <div className="text-[11px] font-semibold text-amber-600">
+                  W: {formatCurrency(stageWeighted)}
+                </div>
               </div>
 
               {/* Deals Stream Cards */}
@@ -176,6 +225,9 @@ export function DealKanbanBoard({
                 ) : (
                   stageDeals.map((deal) => {
                     const isDragging = draggedDealId === deal.id;
+                    const prob = deal.probability ?? 50;
+                    const weightedVal = (deal.value || 0) * (prob / 100);
+
                     return (
                       <div
                         key={deal.id}
@@ -212,19 +264,32 @@ export function DealKanbanBoard({
                           </div>
                         </div>
 
-                        {/* Value & Probability */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-extrabold text-foreground">
-                            {formatCurrency(deal.value || 0)}
-                          </span>
+                        {/* Value & Forecast Category */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-extrabold text-foreground">
+                              {formatCurrency(deal.value || 0)}
+                            </span>
 
-                          {deal.probability !== undefined &&
-                            deal.probability !== null && (
-                              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-secondary text-secondary-foreground rounded border border-border flex items-center gap-0.5">
-                                <Percent className="w-2.5 h-2.5 text-primary" />
-                                {deal.probability}%
+                            {deal.forecastCategory && (
+                              <span
+                                className={`px-1.5 py-0.5 text-[10px] uppercase rounded border ${getCategoryBadgeClass(
+                                  deal.forecastCategory,
+                                )}`}
+                              >
+                                {deal.forecastCategory.replace(/_/g, " ")}
                               </span>
                             )}
+                          </div>
+
+                          {/* Weighted Value Pill */}
+                          <div className="flex items-center justify-between text-[11px] text-amber-700 bg-amber-500/5 px-2 py-1 rounded border border-amber-500/20 font-semibold">
+                            <span>Weighted: {formatCurrency(weightedVal)}</span>
+                            <span className="flex items-center gap-0.5 text-[10px]">
+                              <Percent className="w-2.5 h-2.5" />
+                              {prob}%
+                            </span>
+                          </div>
                         </div>
 
                         {/* Relations info */}

@@ -13,18 +13,33 @@ import {
   Building2,
   User,
   AlertCircle,
-  Tag,
+  TrendingUp,
+  Percent,
+  Layers,
+  History,
 } from "lucide-react";
+
+interface StageHistoryItem {
+  id: string;
+  fromStage: string;
+  toStage: string;
+  changedBy?: string | null;
+  createdAt: string;
+}
 
 interface Deal {
   id: string;
   name: string;
   value: number;
   stage: string;
+  probability?: number | null;
+  forecastCategory?: string | null;
+  owner?: string | null;
   expectedCloseDate?: string | null;
   company?: { id: string; name: string } | null;
   contact?: { id: string; firstName: string; lastName: string } | null;
   notes?: string | null;
+  stageHistory?: StageHistoryItem[];
   createdAt: string;
 }
 
@@ -85,6 +100,9 @@ export default function DealDetailPage({
     );
   }
 
+  const prob = deal.probability ?? 50;
+  const weightedValue = (deal.value || 0) * (prob / 100);
+
   const getStageBadge = (stage: string) => {
     switch (stage) {
       case "NEW":
@@ -134,9 +152,15 @@ export default function DealDetailPage({
               >
                 {deal.stage}
               </span>
+              <span className="px-3 py-1 rounded-md border text-xs font-bold bg-secondary text-secondary-foreground uppercase">
+                {deal.forecastCategory || "OPEN"}
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Pipeline Stage Valuation: ${deal.value ? deal.value.toLocaleString() : "0"}
+            <p className="text-xs text-muted-foreground mt-1">
+              Gross Value: ${deal.value ? deal.value.toLocaleString() : "0"} |{" "}
+              <strong className="text-amber-600">
+                Weighted Pipeline Value: ${weightedValue.toLocaleString()} ({prob}%)
+              </strong>
             </p>
           </div>
         </div>
@@ -144,22 +168,48 @@ export default function DealDetailPage({
 
       {/* Main Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Deal Valuation & Forecast */}
         <div className="bg-card p-5 rounded-lg border border-border space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-            Deal Valuation & Stage
+            Valuation & Weighted Forecast
           </h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
               <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" />
               <div>
                 <span className="text-xs text-muted-foreground block">
-                  Amount / Value
+                  Gross Value
                 </span>
-                <span className="font-bold text-foreground text-lg">
+                <span className="font-bold text-foreground text-base">
                   ${deal.value ? deal.value.toLocaleString() : "0"}
                 </span>
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-4 h-4 text-amber-500 shrink-0" />
+              <div>
+                <span className="text-xs text-muted-foreground block">
+                  Weighted Value (Value × Prob %)
+                </span>
+                <span className="font-extrabold text-amber-700 text-base">
+                  ${weightedValue.toLocaleString()} ({prob}%)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Layers className="w-4 h-4 text-purple-500 shrink-0" />
+              <div>
+                <span className="text-xs text-muted-foreground block">
+                  Forecast Category
+                </span>
+                <span className="font-bold text-foreground uppercase">
+                  {deal.forecastCategory || "OPEN"}
+                </span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               <Calendar className="w-4 h-4 text-primary shrink-0" />
               <div>
@@ -179,9 +229,10 @@ export default function DealDetailPage({
           </div>
         </div>
 
+        {/* Associated Stakeholders */}
         <div className="bg-card p-5 rounded-lg border border-border space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-            Associated Stakeholders
+            Associated Stakeholders & Owner
           </h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
@@ -195,6 +246,7 @@ export default function DealDetailPage({
                 </span>
               </div>
             </div>
+
             <div className="flex items-center gap-3">
               <User className="w-4 h-4 text-primary shrink-0" />
               <div>
@@ -208,34 +260,72 @@ export default function DealDetailPage({
                 </span>
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div>
+                <span className="text-xs text-muted-foreground block">
+                  Opportunity Owner
+                </span>
+                <span className="font-semibold text-foreground">
+                  {deal.owner || "Unassigned"}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Stage History Audit Log */}
         <div className="bg-card p-5 rounded-lg border border-border space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-            Notes
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2 flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5 text-primary" />
+            Stage History Audit Trail
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {deal.notes || "No notes recorded for this deal."}
-          </p>
+
+          {!deal.stageHistory || deal.stageHistory.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">
+              No stage transitions recorded yet.
+            </p>
+          ) : (
+            <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+              {deal.stageHistory.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-2 bg-muted/40 rounded border border-border/60 text-xs space-y-1"
+                >
+                  <div className="font-bold text-foreground flex items-center gap-1.5">
+                    <span>{item.fromStage}</span>
+                    <span>→</span>
+                    <span className="text-primary">{item.toStage}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground flex justify-between">
+                    <span>By: {item.changedBy || "System"}</span>
+                    <span>
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Notes System */}
-      <EntityNotes
-        entityType="deal"
-        entityId={deal.id}
-        entityName={deal.name}
-      />
-
-      {/* Tasks System */}
+      {/* Linked CRM Tasks */}
       <EntityTasks
         entityType="deal"
         entityId={deal.id}
         entityName={deal.name}
       />
 
-      {/* Activity Timeline Component */}
+      {/* CRM Notes */}
+      <EntityNotes
+        entityType="deal"
+        entityId={deal.id}
+        entityName={deal.name}
+      />
+
+      {/* Unified Activity Timeline */}
       <ActivityTimeline
         entityType="deal"
         entityId={deal.id}

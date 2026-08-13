@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { DealStage, ActivityType } from "@prisma/client";
+import { DealStage, ForecastCategory, ActivityType } from "@prisma/client";
 
 const dealSchema = z.object({
   name: z.string().min(1, "Deal name is required").optional(),
@@ -11,6 +11,7 @@ const dealSchema = z.object({
   value: z.number().nonnegative().optional(),
   stage: z.nativeEnum(DealStage).optional(),
   probability: z.number().min(0).max(100).optional(),
+  forecastCategory: z.nativeEnum(ForecastCategory).optional(),
   owner: z.string().optional().nullable(),
   expectedCloseDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -32,6 +33,19 @@ const defaultProbabilityForStage = (stage: DealStage): number => {
       return 0;
     default:
       return 50;
+  }
+};
+
+const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
+  switch (stage) {
+    case DealStage.WON:
+    case DealStage.LOST:
+      return ForecastCategory.CLOSED;
+    case DealStage.NEGOTIATION:
+    case DealStage.PROPOSAL:
+      return ForecastCategory.COMMIT;
+    default:
+      return ForecastCategory.OPEN;
   }
 };
 
@@ -92,11 +106,22 @@ export async function PUT(
     const headerUserEmail = request.headers.get("x-user-email");
     const changedBy = body.owner || headerUserEmail || "System User";
 
-    const { expectedCloseDate, stage, probability, ...restData } = parsed.data;
+    const {
+      expectedCloseDate,
+      stage,
+      probability,
+      forecastCategory,
+      ...restData
+    } = parsed.data;
 
     let updatedProbability = probability;
     if (stage && stage !== existingDeal.stage && probability === undefined) {
       updatedProbability = defaultProbabilityForStage(stage);
+    }
+
+    let updatedCategory = forecastCategory;
+    if (stage && stage !== existingDeal.stage && forecastCategory === undefined) {
+      updatedCategory = defaultCategoryForStage(stage);
     }
 
     const deal = await db.deal.update({
@@ -104,10 +129,20 @@ export async function PUT(
       data: {
         ...restData,
         stage: stage || existingDeal.stage,
-        probability: updatedProbability !== undefined ? updatedProbability : existingDeal.probability,
-        expectedCloseDate: expectedCloseDate !== undefined
-          ? (expectedCloseDate ? new Date(expectedCloseDate) : null)
-          : existingDeal.expectedCloseDate,
+        probability:
+          updatedProbability !== undefined
+            ? updatedProbability
+            : existingDeal.probability,
+        forecastCategory:
+          updatedCategory !== undefined
+            ? updatedCategory
+            : existingDeal.forecastCategory,
+        expectedCloseDate:
+          expectedCloseDate !== undefined
+            ? expectedCloseDate
+              ? new Date(expectedCloseDate)
+              : null
+            : existingDeal.expectedCloseDate,
       },
       include: {
         company: { select: { id: true, name: true } },

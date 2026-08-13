@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DealKanbanBoard } from "@/components/deals/deal-kanban-board";
+import { SalesForecastAnalytics } from "@/components/deals/sales-forecast-analytics";
 import {
   DollarSign,
   Search,
@@ -18,6 +19,8 @@ import {
   LayoutGrid,
   List as ListIcon,
   Percent,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 const DEAL_STAGES = [
@@ -28,6 +31,8 @@ const DEAL_STAGES = [
   "WON",
   "LOST",
 ];
+
+const FORECAST_CATEGORIES = ["OPEN", "COMMIT", "BEST_CASE", "CLOSED"];
 
 interface CompanyOption {
   id: string;
@@ -46,6 +51,7 @@ interface Deal {
   value: number;
   stage: string;
   probability?: number | null;
+  forecastCategory?: string | null;
   owner?: string | null;
   expectedCloseDate?: string | null;
   companyId?: string | null;
@@ -62,7 +68,7 @@ export default function DealsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
-  const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [viewMode, setViewMode] = useState<"board" | "list" | "analytics">("board");
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +83,7 @@ export default function DealsPage() {
     value: 0,
     stage: "NEW",
     probability: 50,
+    forecastCategory: "OPEN",
     owner: "",
     expectedCloseDate: "",
     notes: "",
@@ -143,7 +150,8 @@ export default function DealsPage() {
       contactId: "",
       value: 0,
       stage: defaultStage,
-      probability: 50,
+      probability: defaultStage === "WON" ? 100 : defaultStage === "LOST" ? 0 : 50,
+      forecastCategory: defaultStage === "WON" || defaultStage === "LOST" ? "CLOSED" : "OPEN",
       owner: "",
       expectedCloseDate: "",
       notes: "",
@@ -160,6 +168,7 @@ export default function DealsPage() {
       value: deal.value || 0,
       stage: deal.stage,
       probability: deal.probability ?? 50,
+      forecastCategory: deal.forecastCategory || "OPEN",
       owner: deal.owner || "",
       expectedCloseDate: deal.expectedCloseDate
         ? new Date(deal.expectedCloseDate).toISOString().split("T")[0]
@@ -211,9 +220,9 @@ export default function DealsPage() {
       });
 
       if (!res.ok) {
-        fetchDeals(); // Rollback if error
+        fetchDeals();
       } else {
-        fetchDeals(); // Refresh for server-assigned probabilities/histories
+        fetchDeals();
       }
     } catch {
       fetchDeals();
@@ -260,8 +269,8 @@ export default function DealsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Deals & Visual Sales Pipeline"
-        description="Track revenue opportunities, manage stage transitions, and drag-and-drop deals across your sales pipeline."
+        title="Deals & Sales Pipeline Forecast"
+        description="Track revenue opportunities, probability-weighted pipeline, forecast categories, and Kanban board stages."
         actionText="New Deal"
         onAction={() => handleOpenCreate("NEW")}
       />
@@ -292,6 +301,17 @@ export default function DealsPage() {
             >
               <ListIcon className="w-3.5 h-3.5" />
               List
+            </button>
+            <button
+              onClick={() => setViewMode("analytics")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
+                viewMode === "analytics"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+              Forecast Matrix
             </button>
           </div>
 
@@ -325,7 +345,7 @@ export default function DealsPage() {
         </div>
       </div>
 
-      {/* Main View: Board vs List */}
+      {/* Main View: Board | List | Analytics */}
       {viewMode === "board" ? (
         <DealKanbanBoard
           deals={deals}
@@ -337,6 +357,8 @@ export default function DealsPage() {
           }}
           onCreateDealInStage={(stage) => handleOpenCreate(stage)}
         />
+      ) : viewMode === "analytics" ? (
+        <SalesForecastAnalytics />
       ) : (
         /* Deals Table List View */
         <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
@@ -345,9 +367,10 @@ export default function DealsPage() {
               <thead className="bg-secondary/50 text-muted-foreground font-semibold border-b border-border uppercase text-[11px] tracking-wider">
                 <tr>
                   <th className="px-6 py-3.5">Deal Name</th>
-                  <th className="px-6 py-3.5">Value</th>
+                  <th className="px-6 py-3.5">Gross Value</th>
+                  <th className="px-6 py-3.5">Weighted Value</th>
                   <th className="px-6 py-3.5">Stage</th>
-                  <th className="px-6 py-3.5">Probability</th>
+                  <th className="px-6 py-3.5">Forecast Category</th>
                   <th className="px-6 py-3.5">Company & Contact</th>
                   <th className="px-6 py-3.5">Expected Close</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
@@ -357,7 +380,7 @@ export default function DealsPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-6 py-8 text-center text-muted-foreground"
                     >
                       Loading deals...
@@ -366,7 +389,7 @@ export default function DealsPage() {
                 ) : deals.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-6 py-8 text-center text-muted-foreground"
                     >
                       No deals found. Click "New Deal" to open a pipeline
@@ -374,88 +397,96 @@ export default function DealsPage() {
                     </td>
                   </tr>
                 ) : (
-                  deals.map((deal) => (
-                    <tr
-                      key={deal.id}
-                      className="hover:bg-accent/40 transition-colors"
-                    >
-                      <td className="px-6 py-4 font-semibold text-foreground">
-                        <Link
-                          href={`/deals/${deal.id}`}
-                          className="hover:text-primary transition-colors flex items-center gap-1.5 group"
-                        >
-                          <span>{deal.name}</span>
-                          <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 font-bold text-foreground">
-                        ${deal.value ? deal.value.toLocaleString() : "0"}
-                      </td>
-                      <td className="px-6 py-4 text-xs">
-                        <span
-                          className={`px-2.5 py-1 rounded-md border font-semibold ${getStageBadge(
-                            deal.stage,
-                          )}`}
-                        >
-                          {deal.stage}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-muted-foreground">
-                        {deal.probability !== undefined && deal.probability !== null
-                          ? `${deal.probability}%`
-                          : "—"}
-                      </td>
-                      <td className="px-6 py-4 text-xs space-y-1">
-                        {deal.company && (
-                          <div className="flex items-center gap-1.5 text-primary font-medium">
-                            <Building2 className="w-3.5 h-3.5" />
-                            <span>{deal.company.name}</span>
-                          </div>
-                        )}
-                        {deal.contact && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <User className="w-3.5 h-3.5" />
-                            <span>
-                              {deal.contact.firstName} {deal.contact.lastName}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-xs text-muted-foreground">
-                        {deal.expectedCloseDate ? (
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>
-                              {new Date(
-                                deal.expectedCloseDate,
-                              ).toLocaleDateString()}
-                            </span>
-                          </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => handleOpenEdit(deal)}
-                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                          title="Edit Deal"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedDeal(deal);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                          title="Delete Deal"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  deals.map((deal) => {
+                    const prob = deal.probability ?? 50;
+                    const weighted = (deal.value || 0) * (prob / 100);
+
+                    return (
+                      <tr
+                        key={deal.id}
+                        className="hover:bg-accent/40 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-semibold text-foreground">
+                          <Link
+                            href={`/deals/${deal.id}`}
+                            className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                          >
+                            <span>{deal.name}</span>
+                            <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-foreground">
+                          ${deal.value ? deal.value.toLocaleString() : "0"}
+                        </td>
+                        <td className="px-6 py-4 font-extrabold text-amber-700 bg-amber-500/5">
+                          ${weighted.toLocaleString()} ({prob}%)
+                        </td>
+                        <td className="px-6 py-4 text-xs">
+                          <span
+                            className={`px-2.5 py-1 rounded-md border font-semibold ${getStageBadge(
+                              deal.stage,
+                            )}`}
+                          >
+                            {deal.stage}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-xs">
+                          <span className="px-2 py-0.5 rounded border bg-secondary font-bold text-secondary-foreground">
+                            {deal.forecastCategory || "OPEN"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-xs space-y-1">
+                          {deal.company && (
+                            <div className="flex items-center gap-1.5 text-primary font-medium">
+                              <Building2 className="w-3.5 h-3.5" />
+                              <span>{deal.company.name}</span>
+                            </div>
+                          )}
+                          {deal.contact && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <User className="w-3.5 h-3.5" />
+                              <span>
+                                {deal.contact.firstName} {deal.contact.lastName}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-xs text-muted-foreground">
+                          {deal.expectedCloseDate ? (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>
+                                {new Date(
+                                  deal.expectedCloseDate,
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleOpenEdit(deal)}
+                            className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                            title="Edit Deal"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedDeal(deal);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                            title="Delete Deal"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -545,17 +576,21 @@ export default function DealsPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Owner / Sales Rep
+                Forecast Category
               </label>
-              <input
-                type="text"
-                placeholder="Owner name"
-                value={formData.owner}
+              <select
+                value={formData.forecastCategory}
                 onChange={(e) =>
-                  setFormData({ ...formData, owner: e.target.value })
+                  setFormData({ ...formData, forecastCategory: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              >
+                {FORECAST_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -601,18 +636,35 @@ export default function DealsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-              Expected Close Date
-            </label>
-            <input
-              type="date"
-              value={formData.expectedCloseDate}
-              onChange={(e) =>
-                setFormData({ ...formData, expectedCloseDate: e.target.value })
-              }
-              className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Expected Close Date
+              </label>
+              <input
+                type="date"
+                value={formData.expectedCloseDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, expectedCloseDate: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Owner / Sales Rep
+              </label>
+              <input
+                type="text"
+                placeholder="Owner name"
+                value={formData.owner}
+                onChange={(e) =>
+                  setFormData({ ...formData, owner: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </div>
 
           <div>
