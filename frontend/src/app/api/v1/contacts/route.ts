@@ -13,38 +13,87 @@ const contactSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// GET /api/v1/contacts (list + search)
+// GET /api/v1/contacts (list + pagination + sorting + filters)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get("search") || "";
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search") || "";
+    const companyId = searchParams.get("companyId");
+    const jobTitle = searchParams.get("jobTitle");
+    const tagId = searchParams.get("tagId");
 
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search, mode: "insensitive" as const } },
-            { lastName: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-            { jobTitle: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)),
+    );
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder =
+      searchParams.get("sortOrder")?.toLowerCase() === "asc" ? "asc" : "desc";
 
-    const contacts = await db.contact.findMany({
-      where,
-      include: {
-        company: {
-          select: { id: true, name: true },
+    const AND: Record<string, unknown>[] = [];
+
+    if (search) {
+      AND.push({
+        OR: [
+          { firstName: { contains: search, mode: "insensitive" as const } },
+          { lastName: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+          { jobTitle: { contains: search, mode: "insensitive" as const } },
+        ],
+      });
+    }
+
+    if (companyId) {
+      AND.push({ companyId });
+    }
+
+    if (jobTitle) {
+      AND.push({
+        jobTitle: { contains: jobTitle, mode: "insensitive" as const },
+      });
+    }
+
+    if (tagId) {
+      AND.push({ tags: { some: { tagId } } });
+    }
+
+    const where = AND.length > 0 ? { AND } : {};
+
+    const allowedSortKeys = ["firstName", "lastName", "email", "createdAt"];
+    const orderByKey = allowedSortKeys.includes(sortBy) ? sortBy : "createdAt";
+
+    const [totalItems, contacts] = await Promise.all([
+      db.contact.count({ where }),
+      db.contact.findMany({
+        where,
+        include: {
+          company: { select: { id: true, name: true } },
+          tags: { include: { tag: true } },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { [orderByKey]: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
-    return apiSuccess({ contacts });
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return apiSuccess({
+      contacts,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    });
   } catch (error) {
-    console.error("Contacts fetch error:", error);
-    return apiSuccess(
-      { contacts: [] },
-      "Database offline, returning graceful empty list",
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch contacts",
+      500,
     );
   }
 }
@@ -62,28 +111,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      const contact = await db.contact.create({
-        data: parsed.data,
-        include: {
-          company: { select: { id: true, name: true } },
-        },
-      });
-      return apiSuccess({ contact }, "Contact created successfully", 201);
-    } catch {
-      const mockContact = {
-        id: "cont_" + Math.random().toString(36).substring(2, 9),
-        ...parsed.data,
-        company: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return apiSuccess(
-        { contact: mockContact },
-        "Contact created (mock mode)",
-        201,
-      );
-    }
+    const contact = await db.contact.create({
+      data: parsed.data,
+      include: {
+        company: { select: { id: true, name: true } },
+      },
+    });
+    return apiSuccess({ contact }, "Contact created successfully", 201);
   } catch (error) {
     return apiError(
       error instanceof Error ? error.message : "Failed to create contact",

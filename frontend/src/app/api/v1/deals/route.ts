@@ -49,11 +49,25 @@ const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
   }
 };
 
-// GET /api/v1/deals (list + search + stage filter)
+// GET /api/v1/deals (list + server-side pagination + sorting + filters)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get("search") || "";
-    const stage = request.nextUrl.searchParams.get("stage");
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search") || "";
+    const stage = searchParams.get("stage");
+    const forecastCategory = searchParams.get("forecastCategory");
+    const tagId = searchParams.get("tagId");
+    const minVal = searchParams.get("minVal");
+    const maxVal = searchParams.get("maxVal");
+
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)),
+    );
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder =
+      searchParams.get("sortOrder")?.toLowerCase() === "asc" ? "asc" : "desc";
 
     const AND: Record<string, unknown>[] = [];
 
@@ -67,19 +81,69 @@ export async function GET(request: NextRequest) {
       AND.push({ stage: stage as DealStage });
     }
 
+    if (
+      forecastCategory &&
+      Object.values(ForecastCategory).includes(
+        forecastCategory as ForecastCategory,
+      )
+    ) {
+      AND.push({ forecastCategory: forecastCategory as ForecastCategory });
+    }
+
+    if (tagId) {
+      AND.push({ tags: { some: { tagId } } });
+    }
+
+    if (minVal) {
+      AND.push({ value: { gte: Number(minVal) } });
+    }
+
+    if (maxVal) {
+      AND.push({ value: { lte: Number(maxVal) } });
+    }
+
     const where = AND.length > 0 ? { AND } : {};
 
-    const deals = await db.deal.findMany({
-      where,
-      include: {
-        company: { select: { id: true, name: true } },
-        contact: { select: { id: true, firstName: true, lastName: true } },
-        stageHistory: { orderBy: { createdAt: "desc" }, take: 5 },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const allowedSortKeys = [
+      "name",
+      "value",
+      "stage",
+      "probability",
+      "forecastCategory",
+      "expectedCloseDate",
+      "createdAt",
+    ];
+    const orderByKey = allowedSortKeys.includes(sortBy) ? sortBy : "createdAt";
 
-    return apiSuccess({ deals });
+    const [totalItems, deals] = await Promise.all([
+      db.deal.count({ where }),
+      db.deal.findMany({
+        where,
+        include: {
+          company: { select: { id: true, name: true } },
+          contact: { select: { id: true, firstName: true, lastName: true } },
+          tags: { include: { tag: true } },
+          stageHistory: { orderBy: { createdAt: "desc" }, take: 5 },
+        },
+        orderBy: { [orderByKey]: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return apiSuccess({
+      deals,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    });
   } catch (error) {
     return apiError(
       error instanceof Error ? error.message : "Failed to fetch deals",

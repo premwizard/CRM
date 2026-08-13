@@ -15,11 +15,25 @@ const leadSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// GET /api/v1/leads (list + search + status filter)
+// GET /api/v1/leads (list + server-side pagination + sorting + filters)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get("search") || "";
-    const status = request.nextUrl.searchParams.get("status");
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status");
+    const source = searchParams.get("source");
+    const tagId = searchParams.get("tagId");
+    const minVal = searchParams.get("minVal");
+    const maxVal = searchParams.get("maxVal");
+
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)),
+    );
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder =
+      searchParams.get("sortOrder")?.toLowerCase() === "asc" ? "asc" : "desc";
 
     const AND: Record<string, unknown>[] = [];
 
@@ -37,14 +51,54 @@ export async function GET(request: NextRequest) {
       AND.push({ status: status as LeadStatus });
     }
 
+    if (source && Object.values(LeadSource).includes(source as LeadSource)) {
+      AND.push({ source: source as LeadSource });
+    }
+
+    if (tagId) {
+      AND.push({ tags: { some: { tagId } } });
+    }
+
+    if (minVal) {
+      AND.push({ value: { gte: Number(minVal) } });
+    }
+
+    if (maxVal) {
+      AND.push({ value: { lte: Number(maxVal) } });
+    }
+
     const where = AND.length > 0 ? { AND } : {};
 
-    const leads = await db.lead.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    // Supported sort keys
+    const allowedSortKeys = ["name", "value", "status", "source", "createdAt"];
+    const orderByKey = allowedSortKeys.includes(sortBy) ? sortBy : "createdAt";
 
-    return apiSuccess({ leads });
+    const [totalItems, leads] = await Promise.all([
+      db.lead.count({ where }),
+      db.lead.findMany({
+        where,
+        include: {
+          tags: { include: { tag: true } },
+        },
+        orderBy: { [orderByKey]: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return apiSuccess({
+      leads,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    });
   } catch (error) {
     return apiError(
       error instanceof Error ? error.message : "Failed to fetch leads",

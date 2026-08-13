@@ -24,16 +24,27 @@ const includeRelations = {
   deal: { select: { id: true, name: true } },
 };
 
-// GET /api/v1/tasks
+// GET /api/v1/tasks (list + pagination + sorting + filters)
 export async function GET(request: NextRequest) {
   try {
-    const search = request.nextUrl.searchParams.get("search") || "";
-    const status = request.nextUrl.searchParams.get("status");
-    const priority = request.nextUrl.searchParams.get("priority");
-    const contactId = request.nextUrl.searchParams.get("contactId");
-    const companyId = request.nextUrl.searchParams.get("companyId");
-    const leadId = request.nextUrl.searchParams.get("leadId");
-    const dealId = request.nextUrl.searchParams.get("dealId");
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status");
+    const priority = searchParams.get("priority");
+    const contactId = searchParams.get("contactId");
+    const companyId = searchParams.get("companyId");
+    const leadId = searchParams.get("leadId");
+    const dealId = searchParams.get("dealId");
+    const isOverdue = searchParams.get("overdue") === "true";
+
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)),
+    );
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder =
+      searchParams.get("sortOrder")?.toLowerCase() === "asc" ? "asc" : "desc";
 
     const AND: Record<string, unknown>[] = [];
 
@@ -57,6 +68,13 @@ export async function GET(request: NextRequest) {
       AND.push({ priority: priority as TaskPriority });
     }
 
+    if (isOverdue) {
+      AND.push({
+        dueDate: { lt: new Date() },
+        status: { notIn: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] },
+      });
+    }
+
     if (contactId) AND.push({ contactId });
     if (companyId) AND.push({ companyId });
     if (leadId) AND.push({ leadId });
@@ -64,16 +82,38 @@ export async function GET(request: NextRequest) {
 
     const where = AND.length > 0 ? { AND } : {};
 
-    const tasks = await db.task.findMany({
-      where,
-      include: includeRelations,
-      orderBy: { createdAt: "desc" },
-    });
+    const allowedSortKeys = ["title", "dueDate", "priority", "status", "createdAt"];
+    const orderByKey = allowedSortKeys.includes(sortBy) ? sortBy : "createdAt";
 
-    return apiSuccess({ tasks });
+    const [totalItems, tasks] = await Promise.all([
+      db.task.count({ where }),
+      db.task.findMany({
+        where,
+        include: includeRelations,
+        orderBy: { [orderByKey]: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+    return apiSuccess({
+      tasks,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
+      },
+    });
   } catch (error) {
-    console.error("Tasks fetch error:", error);
-    return apiSuccess({ tasks: [] }, "Database query fallback");
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch tasks",
+      500,
+    );
   }
 }
 
@@ -90,7 +130,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { dueDate, contactId, companyId, leadId, dealId, ...restData } = parsed.data;
+    const { dueDate, contactId, companyId, leadId, dealId, ...restData } =
+      parsed.data;
 
     const task = await db.task.create({
       data: {

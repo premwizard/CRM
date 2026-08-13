@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import {
+  DataTablePagination,
+  PaginationMeta,
+} from "@/components/ui/data-table-pagination";
 import {
   Users,
   Search,
@@ -13,8 +18,11 @@ import {
   Mail,
   Phone,
   Building2,
-  Briefcase,
   Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
 } from "lucide-react";
 
 interface CompanyOption {
@@ -32,13 +40,41 @@ interface Contact {
   companyId?: string | null;
   company?: { id: string; name: string } | null;
   notes?: string | null;
+  tags?: { tag: { id: string; name: string; color?: string | null } }[];
+  createdAt: string;
 }
 
-export default function ContactsPage() {
+interface TagItem {
+  id: string;
+  name: string;
+}
+
+function ContactsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+
+  const search = searchParams.get("search") || "";
+  const selectedCompanyId = searchParams.get("companyId") || "";
+  const selectedTagId = searchParams.get("tagId") || "";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
+  const sortBy = searchParams.get("sortBy") || "createdAt";
+  const sortOrder = searchParams.get("sortOrder") || "desc";
+
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page,
+    pageSize,
+    totalItems: 0,
+    totalPages: 1,
+    hasPreviousPage: false,
+    hasNextPage: false,
+  });
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,45 +94,87 @@ export default function ContactsPage() {
 
   const [saving, setSaving] = useState(false);
 
-  const fetchContacts = async () => {
+  const updateUrlParams = useCallback(
+    (newParams: Record<string, string | number | null>) => {
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      Object.entries(newParams).forEach(([key, val]) => {
+        if (val === null || val === "" || val === undefined) {
+          current.delete(key);
+        } else {
+          current.set(key, String(val));
+        }
+      });
+      router.push(`${pathname}?${current.toString()}`);
+    },
+    [searchParams, pathname, router],
+  );
+
+  const fetchContacts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/v1/contacts?search=${encodeURIComponent(search)}`,
-      );
+      const query = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        sortBy,
+        sortOrder,
+      });
+      if (search) query.set("search", search);
+      if (selectedCompanyId) query.set("companyId", selectedCompanyId);
+      if (selectedTagId) query.set("tagId", selectedTagId);
+
+      const res = await fetch(`/api/v1/contacts?${query.toString()}`);
       const data = await res.json();
       if (data.success) {
         setContacts(data.data.contacts || []);
+        if (data.data.pagination) {
+          setPagination(data.data.pagination);
+        }
       }
     } catch {
-      // Error handling
+      // Fallback
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, sortBy, sortOrder, search, selectedCompanyId, selectedTagId]);
 
-  const fetchCompanyOptions = async () => {
+  const fetchCompanies = async () => {
     try {
-      const res = await fetch("/api/v1/companies");
+      const res = await fetch("/api/v1/companies?pageSize=100");
       const data = await res.json();
       if (data.success) {
         setCompanies(data.data.companies || []);
       }
     } catch {
-      // Error handling
+      // Fallback
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const res = await fetch("/api/v1/tags");
+      const data = await res.json();
+      if (data.success) {
+        setTags(data.data.tags || []);
+      }
+    } catch {
+      // Fallback
     }
   };
 
   useEffect(() => {
-    fetchCompanyOptions();
-  }, []);
+    fetchContacts();
+  }, [fetchContacts]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchContacts();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+    fetchCompanies();
+    fetchTags();
+  }, []);
+
+  const handleSort = (field: string) => {
+    const isSameField = sortBy === field;
+    const nextOrder = isSameField && sortOrder === "asc" ? "desc" : "asc";
+    updateUrlParams({ sortBy: field, sortOrder: nextOrder, page: 1 });
+  };
 
   const handleOpenCreate = () => {
     setSelectedContact(null);
@@ -175,28 +253,75 @@ export default function ContactsPage() {
     }
   };
 
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field)
+      return <ArrowUpDown className="w-3 h-3 text-muted-foreground opacity-50 ml-1 inline" />;
+    return sortOrder === "asc" ? (
+      <ArrowUp className="w-3 h-3 text-primary ml-1 inline" />
+    ) : (
+      <ArrowDown className="w-3 h-3 text-primary ml-1 inline" />
+    );
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Contacts"
-        description="Manage customer profiles, contact channels, and company associations."
+        title="Contacts Directory"
+        description="Manage customer profiles, direct contacts, and company relationships."
         actionText="Add Contact"
         onAction={handleOpenCreate}
         icon={Users}
       />
 
-      {/* Server-side Search */}
-      <div className="flex items-center justify-between gap-4 bg-card p-4 rounded-lg border border-border">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search contacts by name, email, or job title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+      {/* Toolbar & Filter Panel */}
+      <div className="bg-card p-4 rounded-lg border border-border space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Search Box */}
+          <div className="relative md:col-span-2">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search contacts by name, email, or job title..."
+              value={search}
+              onChange={(e) => updateUrlParams({ search: e.target.value, page: 1 })}
+              className="w-full pl-9 pr-4 py-2 text-xs bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          {/* Company Filter */}
+          <select
+            value={selectedCompanyId}
+            onChange={(e) => updateUrlParams({ companyId: e.target.value, page: 1 })}
+            className="w-full px-3 py-2 text-xs bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">All Companies</option>
+            {companies.map((comp) => (
+              <option key={comp.id} value={comp.id}>
+                {comp.name}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* Secondary Filter Row: Tag Filter */}
+        {tags.length > 0 && (
+          <div className="flex items-center gap-2 pt-1 border-t border-border/50 text-xs">
+            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground font-semibold">Filter by Tag:</span>
+            <select
+              value={selectedTagId}
+              onChange={(e) => updateUrlParams({ tagId: e.target.value, page: 1 })}
+              className="px-2.5 py-1 text-xs bg-background border border-input rounded-md focus:ring-1 focus:ring-primary"
+            >
+              <option value="">-- All Tags --</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Contacts Table */}
@@ -205,10 +330,20 @@ export default function ContactsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-secondary/50 text-muted-foreground font-semibold border-b border-border uppercase text-[11px] tracking-wider">
               <tr>
-                <th className="px-6 py-3.5">Name</th>
+                <th
+                  onClick={() => handleSort("firstName")}
+                  className="px-6 py-3.5 cursor-pointer hover:bg-accent/50 select-none"
+                >
+                  Contact Name {getSortIcon("firstName")}
+                </th>
+                <th
+                  onClick={() => handleSort("email")}
+                  className="px-6 py-3.5 cursor-pointer hover:bg-accent/50 select-none"
+                >
+                  Email & Phone {getSortIcon("email")}
+                </th>
                 <th className="px-6 py-3.5">Job Title</th>
                 <th className="px-6 py-3.5">Company</th>
-                <th className="px-6 py-3.5">Email & Phone</th>
                 <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
@@ -217,18 +352,24 @@ export default function ContactsPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-muted-foreground"
+                    className="px-6 py-8 text-center text-muted-foreground animate-pulse"
                   >
-                    Loading contacts...
+                    Loading contacts database...
                   </td>
                 </tr>
               ) : contacts.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-muted-foreground"
+                    className="px-6 py-12 text-center text-muted-foreground space-y-1"
                   >
-                    No contacts found. Click "Add Contact" to create a record.
+                    <Users className="w-8 h-8 mx-auto text-muted-foreground opacity-30" />
+                    <p className="font-semibold text-foreground text-sm">
+                      No contacts match current filters
+                    </p>
+                    <p className="text-xs">
+                      Try clearing search parameters or create a new contact.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -247,42 +388,66 @@ export default function ContactsPage() {
                         </span>
                         <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
                       </Link>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground text-xs">
-                      {contact.jobTitle ? (
-                        <div className="flex items-center gap-1.5">
-                          <Briefcase className="w-3.5 h-3.5" />
-                          <span>{contact.jobTitle}</span>
+
+                      {/* Tag Pills */}
+                      {contact.tags && contact.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {contact.tags.map((t) => (
+                            <span
+                              key={t.tag.id}
+                              style={{
+                                backgroundColor: `${t.tag.color || "#3B82F6"}15`,
+                                color: t.tag.color || "#3B82F6",
+                                borderColor: `${t.tag.color || "#3B82F6"}30`,
+                              }}
+                              className="px-2 py-0.5 text-[10px] font-bold border rounded-full"
+                            >
+                              {t.tag.name}
+                            </span>
+                          ))}
                         </div>
-                      ) : (
-                        "—"
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium">
-                      {contact.company ? (
-                        <div className="flex items-center gap-1.5 text-primary">
-                          <Building2 className="w-3.5 h-3.5" />
-                          <span>{contact.company.name}</span>
+                    <td className="px-6 py-4 text-xs font-normal text-muted-foreground">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-foreground font-medium">
+                          <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span>{contact.email}</span>
                         </div>
+                        {contact.phone && (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span>{contact.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-medium text-foreground">
+                      {contact.jobTitle || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-foreground">
+                      {contact.company ? (
+                        <Link
+                          href={`/companies/${contact.company.id}`}
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <Building2 className="w-3.5 h-3.5" />
+                          {contact.company.name}
+                        </Link>
                       ) : (
                         <span className="text-muted-foreground font-normal">
                           Unassigned
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-xs space-y-1">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Mail className="w-3.5 h-3.5 text-primary" />
-                        <span>{contact.email}</span>
-                      </div>
-                      {contact.phone && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>{contact.phone}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-1">
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        className="p-1.5 inline-block rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleOpenEdit(contact)}
                         className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
@@ -307,13 +472,22 @@ export default function ContactsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Server-Side Pagination Bar */}
+        <DataTablePagination
+          pagination={pagination}
+          onPageChange={(newPage) => updateUrlParams({ page: newPage })}
+          onPageSizeChange={(newPageSize) =>
+            updateUrlParams({ pageSize: newPageSize, page: 1 })
+          }
+        />
       </div>
 
-      {/* Modal */}
+      {/* Create / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedContact ? "Edit Contact" : "Create Contact"}
+        title={selectedContact ? "Edit Contact" : "Add New Contact"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -347,25 +521,24 @@ export default function ContactsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Phone
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Phone Number
               </label>
               <input
                 type="text"
@@ -376,6 +549,9 @@ export default function ContactsPage() {
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                 Job Title
@@ -389,26 +565,25 @@ export default function ContactsPage() {
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-              Associated Company
-            </label>
-            <select
-              value={formData.companyId}
-              onChange={(e) =>
-                setFormData({ ...formData, companyId: e.target.value })
-              }
-              className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">-- No Company Association --</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Company Account
+              </label>
+              <select
+                value={formData.companyId}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyId: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">-- Independent / None --</option>
+                {companies.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
@@ -450,9 +625,17 @@ export default function ContactsPage() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         title="Delete Contact"
-        message={`Are you sure you want to delete "${selectedContact?.firstName} ${selectedContact?.lastName}"?`}
+        message={`Are you sure you want to delete contact "${selectedContact?.firstName} ${selectedContact?.lastName}"?`}
         loading={saving}
       />
     </div>
+  );
+}
+
+export default function ContactsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-muted-foreground">Loading contacts...</div>}>
+      <ContactsContent />
+    </Suspense>
   );
 }
