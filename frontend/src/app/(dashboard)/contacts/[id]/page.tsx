@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
 import { EntityTasks } from "@/components/tasks/entity-tasks";
+import { EntityTags } from "@/components/tags/entity-tags";
 import {
   ArrowLeft,
   Mail,
@@ -25,6 +26,7 @@ interface Contact {
   companyId?: string | null;
   company?: { id: string; name: string } | null;
   notes?: string | null;
+  tags?: { tag: { id: string; name: string; color?: string | null } }[];
   createdAt: string;
 }
 
@@ -86,6 +88,7 @@ export default function ContactDetailPage({
   }
 
   const fullName = `${contact.firstName} ${contact.lastName}`;
+  const initialTags = contact.tags?.map((t) => t.tag) || [];
 
   return (
     <div className="space-y-6">
@@ -100,9 +103,9 @@ export default function ContactDetailPage({
       </div>
 
       {/* Header Card */}
-      <div className="bg-card p-6 rounded-lg border border-border flex items-center justify-between">
+      <div className="bg-card p-6 rounded-lg border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20">
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20 shrink-0">
             {contact.firstName[0]}
             {contact.lastName[0]}
           </div>
@@ -121,6 +124,14 @@ export default function ContactDetailPage({
             </p>
           </div>
         </div>
+
+        {/* Tags Component */}
+        <EntityTags
+          entityType="contact"
+          entityId={contact.id}
+          initialTags={initialTags}
+          onTagsUpdated={fetchContact}
+        />
       </div>
 
       {/* Main Info Grid */}

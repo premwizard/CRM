@@ -23,6 +23,7 @@ import {
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
 import { EntityTasks } from "@/components/tasks/entity-tasks";
+import { EntityTags } from "@/components/tags/entity-tags";
 
 interface ConvertedCompany {
   id: string;
@@ -59,6 +60,7 @@ interface Lead {
   convertedCompany?: ConvertedCompany | null;
   convertedContact?: ConvertedContact | null;
   convertedDeal?: ConvertedDeal | null;
+  tags?: { tag: { id: string; name: string; color?: string | null } }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -182,6 +184,16 @@ export default function LeadDetailPage({
             <span>•</span>
             <span>Created: {formatDate(lead.createdAt)}</span>
           </p>
+
+          {/* Tags Component */}
+          <div className="pt-2">
+            <EntityTags
+              entityType="lead"
+              entityId={lead.id}
+              initialTags={lead.tags?.map((t) => t.tag) || []}
+              onTagsUpdated={fetchLead}
+            />
+          </div>
         </div>
 
         {/* Action Convert Button */}

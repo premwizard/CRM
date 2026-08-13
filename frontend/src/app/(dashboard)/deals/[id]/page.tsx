@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
 import { EntityTasks } from "@/components/tasks/entity-tasks";
+import { EntityTags } from "@/components/tags/entity-tags";
 import {
   ArrowLeft,
   Briefcase,
@@ -40,6 +41,7 @@ interface Deal {
   contact?: { id: string; firstName: string; lastName: string } | null;
   notes?: string | null;
   stageHistory?: StageHistoryItem[];
+  tags?: { tag: { id: string; name: string; color?: string | null } }[];
   createdAt: string;
 }
 
@@ -164,6 +166,14 @@ export default function DealDetailPage({
             </p>
           </div>
         </div>
+
+        {/* Tags Component */}
+        <EntityTags
+          entityType="deal"
+          entityId={deal.id}
+          initialTags={deal.tags?.map((t) => t.tag) || []}
+          onTagsUpdated={fetchDeal}
+        />
       </div>
 
       {/* Main Info Grid */}

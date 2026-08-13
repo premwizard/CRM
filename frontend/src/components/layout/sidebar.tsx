@@ -13,6 +13,7 @@ import {
   BarChart3,
   Settings,
   Shield,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export const navItems = [
   { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Leads", href: "/leads", icon: Target },
   { name: "Deals", href: "/deals", icon: DollarSign },
+  { name: "Segments", href: "/segments", icon: Layers },
   { name: "Tasks", href: "/tasks", icon: CheckSquare },
   { name: "Activities", href: "/activities", icon: Activity },
   { name: "Reports", href: "/reports", icon: BarChart3 },

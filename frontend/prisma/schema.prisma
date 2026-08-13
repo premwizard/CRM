@@ -131,7 +131,7 @@ model OrganizationMember {
 }
 
 model Company {
-  id             String     @id @default(uuid())
+  id             String       @id @default(uuid())
   name           String
   industry       String?
   website        String?
@@ -144,30 +144,32 @@ model Company {
   activities     Activity[]
   noteRecords    Note[]
   taskRecords    Task[]
-  convertedLeads Lead[]     @relation("LeadConvertedCompany")
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  tags           CompanyTag[]
+  convertedLeads Lead[]       @relation("LeadConvertedCompany")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([name])
 }
 
 model Contact {
-  id             String     @id @default(uuid())
+  id             String       @id @default(uuid())
   firstName      String
   lastName       String
-  email          String     @unique
+  email          String       @unique
   phone          String?
   jobTitle       String?
   companyId      String?
-  company        Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company        Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   notes          String?
   deals          Deal[]
   activities     Activity[]
   noteRecords    Note[]
   taskRecords    Task[]
-  convertedLeads Lead[]     @relation("LeadConvertedContact")
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  tags           ContactTag[]
+  convertedLeads Lead[]       @relation("LeadConvertedContact")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([email])
   @@index([lastName, firstName])
@@ -194,6 +196,7 @@ model Lead {
   activities         Activity[]
   noteRecords        Note[]
   taskRecords        Task[]
+  tags               LeadTag[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -219,6 +222,7 @@ model Deal {
   activities        Activity[]
   noteRecords       Note[]
   taskRecords       Task[]
+  tags              DealTag[]
   convertedLeads    Lead[]             @relation("LeadConvertedDeal")
   stageHistory      DealStageHistory[]
   createdAt         DateTime           @default(now())
@@ -323,4 +327,74 @@ model Note {
   @@index([companyId])
   @@index([leadId])
   @@index([dealId])
+}
+
+model Tag {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  color     String?      @default("#3B82F6")
+  contacts  ContactTag[]
+  companies CompanyTag[]
+  leads     LeadTag[]
+  deals     DealTag[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([name])
+}
+
+model ContactTag {
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+}
+
+model CompanyTag {
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, tagId])
+}
+
+model LeadTag {
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+}
+
+model DealTag {
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([dealId, tagId])
+}
+
+enum SegmentEntityType {
+  CONTACT
+  COMPANY
+  LEAD
+  DEAL
+}
+
+model Segment {
+  id           String            @id @default(uuid())
+  name         String
+  description  String?
+  entityType   SegmentEntityType
+  filterConfig Json
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([entityType])
+  @@index([name])
 }

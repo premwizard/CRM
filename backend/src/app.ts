@@ -9,6 +9,8 @@ import activityRoutes from "./routes/activities";
 import noteRoutes from "./routes/notes";
 import taskRoutes from "./routes/tasks";
 import dealRoutes from "./routes/deals";
+import tagRoutes from "./routes/tags";
+import segmentRoutes from "./routes/segments";
 import { db } from "./config/db";
 
 dotenv.config();
@@ -28,6 +30,8 @@ app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/notes", noteRoutes);
 app.use("/api/v1/tasks", taskRoutes);
 app.use("/api/v1/deals", dealRoutes);
+app.use("/api/v1/tags", tagRoutes);
+app.use("/api/v1/segments", segmentRoutes);
 
 // GET /api/v1/health
 app.get("/api/v1/health", (req, res) => {

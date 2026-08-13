@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
 import { EntityTasks } from "@/components/tasks/entity-tasks";
+import { EntityTags } from "@/components/tags/entity-tags";
 import {
   ArrowLeft,
   Building2,
@@ -25,6 +26,7 @@ interface Company {
   phone?: string | null;
   address?: string | null;
   notes?: string | null;
+  tags?: { tag: { id: string; name: string; color?: string | null } }[];
   createdAt: string;
 }
 
@@ -63,7 +65,7 @@ export default function CompanyDetailPage({
   if (loading) {
     return (
       <div className="p-8 text-center text-muted-foreground animate-pulse">
-        Loading company profile...
+        Loading company details...
       </div>
     );
   }
@@ -85,6 +87,8 @@ export default function CompanyDetailPage({
     );
   }
 
+  const initialTags = company.tags?.map((t) => t.tag) || [];
+
   return (
     <div className="space-y-6">
       {/* Back Link */}
@@ -98,9 +102,9 @@ export default function CompanyDetailPage({
       </div>
 
       {/* Header Card */}
-      <div className="bg-card p-6 rounded-lg border border-border flex items-center justify-between">
+      <div className="bg-card p-6 rounded-lg border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20">
+          <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20 shrink-0">
             <Building2 className="w-6 h-6" />
           </div>
           <div>
@@ -112,6 +116,14 @@ export default function CompanyDetailPage({
             </p>
           </div>
         </div>
+
+        {/* Tags Component */}
+        <EntityTags
+          entityType="company"
+          entityId={company.id}
+          initialTags={initialTags}
+          onTagsUpdated={fetchCompany}
+        />
       </div>
 
       {/* Main Info Grid */}
@@ -148,7 +160,7 @@ export default function CompanyDetailPage({
 
         <div className="bg-card p-5 rounded-lg border border-border space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-            Online & Location
+            Web & Location
           </h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
@@ -157,9 +169,22 @@ export default function CompanyDetailPage({
                 <span className="text-xs text-muted-foreground block">
                   Website
                 </span>
-                <span className="font-medium text-foreground">
-                  {company.website || "—"}
-                </span>
+                {company.website ? (
+                  <a
+                    href={
+                      company.website.startsWith("http")
+                        ? company.website
+                        : `https://${company.website}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {company.website}
+                  </a>
+                ) : (
+                  <span className="font-medium text-foreground">—</span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -178,10 +203,10 @@ export default function CompanyDetailPage({
 
         <div className="bg-card p-5 rounded-lg border border-border space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
-            Notes & Info
+            Company Notes
           </h3>
           <p className="text-xs text-muted-foreground">
-            {company.notes || "No company notes recorded."}
+            {company.notes || "No notes provided for this company."}
           </p>
         </div>
       </div>
