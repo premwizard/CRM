@@ -24,6 +24,11 @@ export async function GET(
     const { id } = await context.params;
     const lead = await db.lead.findUnique({
       where: { id },
+      include: {
+        convertedCompany: true,
+        convertedContact: true,
+        convertedDeal: true,
+      },
     });
 
     if (!lead) {

@@ -113,36 +113,38 @@ model OrganizationMember {
 }
 
 model Company {
-  id        String    @id @default(uuid())
-  name      String
-  industry  String?
-  website   String?
-  email     String?
-  phone     String?
-  address   String?
-  notes     String?
-  contacts  Contact[]
-  deals     Deal[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  name           String
+  industry       String?
+  website        String?
+  email          String?
+  phone          String?
+  address        String?
+  notes          String?
+  contacts       Contact[]
+  deals          Deal[]
+  convertedLeads Lead[]    @relation("LeadConvertedCompany")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([name])
 }
 
 model Contact {
-  id         String     @id @default(uuid())
-  firstName  String
-  lastName   String
-  email      String     @unique
-  phone      String?
-  jobTitle   String?
-  companyId  String?
-  company    Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  notes      String?
-  deals      Deal[]
-  activities Activity[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  firstName      String
+  lastName       String
+  email          String     @unique
+  phone          String?
+  jobTitle       String?
+  companyId      String?
+  company        Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  notes          String?
+  deals          Deal[]
+  activities     Activity[]
+  convertedLeads Lead[]     @relation("LeadConvertedContact")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([email])
   @@index([lastName, firstName])
@@ -150,17 +152,24 @@ model Contact {
 }
 
 model Lead {
-  id        String     @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  company   String?
-  source    LeadSource @default(WEBSITE)
-  status    LeadStatus @default(NEW)
-  value     Float      @default(0)
-  notes     String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                 String     @id @default(uuid())
+  name               String
+  email              String?
+  phone              String?
+  company            String?
+  source             LeadSource @default(WEBSITE)
+  status             LeadStatus @default(NEW)
+  value              Float      @default(0)
+  notes              String?
+  convertedAt        DateTime?
+  convertedCompanyId String?
+  convertedCompany   Company?   @relation("LeadConvertedCompany", fields: [convertedCompanyId], references: [id], onDelete: SetNull)
+  convertedContactId String?
+  convertedContact   Contact?   @relation("LeadConvertedContact", fields: [convertedContactId], references: [id], onDelete: SetNull)
+  convertedDealId    String?
+  convertedDeal      Deal?      @relation("LeadConvertedDeal", fields: [convertedDealId], references: [id], onDelete: SetNull)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   @@index([status])
   @@index([source])
@@ -179,6 +188,7 @@ model Deal {
   expectedCloseDate DateTime?
   notes             String?
   activities        Activity[]
+  convertedLeads    Lead[]     @relation("LeadConvertedDeal")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 

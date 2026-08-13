@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { LeadConvertModal } from "@/components/leads/lead-convert-modal";
 import {
   Target,
   Search,
@@ -12,6 +14,8 @@ import {
   Mail,
   Phone,
   DollarSign,
+  CheckCircle2,
+  Eye,
 } from "lucide-react";
 
 const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "LOST", "CONVERTED"];
@@ -35,6 +39,7 @@ interface Lead {
   status: string;
   value: number;
   notes?: string | null;
+  convertedAt?: string | null;
 }
 
 export default function LeadsPage() {
@@ -46,6 +51,7 @@ export default function LeadsPage() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Form State
@@ -256,65 +262,103 @@ export default function LeadsPage() {
                   </td>
                 </tr>
               ) : (
-                leads.map((lead) => (
-                  <tr
-                    key={lead.id}
-                    className="hover:bg-accent/40 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-semibold text-foreground">
-                      <div>{lead.name}</div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground font-normal mt-0.5">
-                        {lead.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="w-3 h-3 text-primary" />
-                            {lead.email}
-                          </span>
-                        )}
-                        {lead.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {lead.phone}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-foreground">
-                      {lead.company || "—"}
-                    </td>
-                    <td className="px-6 py-4 text-xs">
-                      <span
-                        className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(lead.status)}`}
-                      >
-                        {lead.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
-                      {lead.source}
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-foreground">
-                      ${lead.value ? lead.value.toLocaleString() : "0"}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenEdit(lead)}
-                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                        title="Edit Lead"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedLead(lead);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                        title="Delete Lead"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                leads.map((lead) => {
+                  const isConvertible =
+                    lead.status !== "CONVERTED" && lead.status !== "LOST";
+                  return (
+                    <tr
+                      key={lead.id}
+                      className="hover:bg-accent/40 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-semibold text-foreground">
+                        <Link
+                          href={`/leads/${lead.id}`}
+                          className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                        >
+                          <span>{lead.name}</span>
+                          <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                        </Link>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground font-normal mt-0.5">
+                          {lead.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-primary" />
+                              {lead.email}
+                            </span>
+                          )}
+                          {lead.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {lead.phone}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-foreground">
+                        {lead.company || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-xs">
+                        <span
+                          className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(lead.status)}`}
+                        >
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
+                        {lead.source}
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-foreground">
+                        ${lead.value ? lead.value.toLocaleString() : "0"}
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        {isConvertible ? (
+                          <button
+                            onClick={() => {
+                              setSelectedLead(lead);
+                              setIsConvertModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors"
+                            title="Convert Lead"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Convert
+                          </button>
+                        ) : lead.status === "CONVERTED" ? (
+                          <Link
+                            href={`/leads/${lead.id}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-md hover:bg-amber-500/20"
+                          >
+                            Converted
+                          </Link>
+                        ) : null}
+
+                        <Link
+                          href={`/leads/${lead.id}`}
+                          className="p-1.5 inline-block rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleOpenEdit(lead)}
+                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          title="Edit Lead"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                          title="Delete Lead"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -485,6 +529,16 @@ export default function LeadsPage() {
         title="Delete Lead"
         message={`Are you sure you want to delete lead "${selectedLead?.name}"?`}
         loading={saving}
+      />
+
+      {/* Lead Conversion Modal */}
+      <LeadConvertModal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        lead={selectedLead}
+        onSuccess={() => {
+          fetchLeads();
+        }}
       />
     </div>
   );

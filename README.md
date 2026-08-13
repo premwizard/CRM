@@ -73,10 +73,16 @@ ic-crm/
 - Direct company association drop-down pickers.
 - Search server-side by first name, last name, job title, or email.
 
-### 🎯 Qualified Leads (`/leads`)
+### 🎯 Qualified Leads & Conversion Workflow (`/leads` & `/leads/[id]`)
 - Full CRUD operations with `LeadStatus` (`NEW`, `CONTACTED`, `QUALIFIED`, `LOST`, `CONVERTED`).
 - `LeadSource` attribution (`WEBSITE`, `LINKEDIN`, `REFERRAL`, `EMAIL`, `ADVERTISEMENT`, `COLD_CALL`, `OTHER`).
-- Status filter toolbar and estimated lead valuation tracking.
+- **Lead Conversion Workflow**:
+  - Convert qualified leads (`NEW`, `CONTACTED`, `QUALIFIED`) directly into a **Company**, **Contact**, and **Deal** in a single atomic database transaction.
+  - Interactive conversion dialog pre-filled with lead details, supporting new creation or existing entity linking.
+  - Automatic duplicate company detection and warning alerts.
+  - Dedicated **Lead Details Page** (`/leads/[id]`) showing conversion history with clickable links to generated Company, Contact, and Deal entities.
+  - Transaction safety ensuring partial conversions roll back completely on error.
+  - Status lock disabling re-conversion of `CONVERTED` leads and prohibiting conversion of `LOST` leads.
 
 ### 💼 Deals & Pipeline (`/deals`)
 - Sales pipeline management across deal stages (`NEW`, `QUALIFIED`, `PROPOSAL`, `NEGOTIATION`, `WON`, `LOST`).
@@ -174,6 +180,8 @@ Central API prefix: `/api/v1`
 | `GET / POST` | `/api/v1/contacts` | List (with search) and create contact |
 | `PUT / DELETE` | `/api/v1/contacts/:id` | Update or delete contact by ID |
 | `GET / POST` | `/api/v1/leads` | List (with search/filter) and create lead |
+| `GET` | `/api/v1/leads/:id` | Get lead details with converted relations |
+| `POST` | `/api/v1/leads/:id/convert` | **Convert lead** to Company, Contact, and Deal (Transaction-safe) |
 | `GET / POST` | `/api/v1/deals` | List (with search/filter) and create deal |
 | `GET / POST` | `/api/v1/tasks` | List (with status/priority filters) and create task |
 | `GET / POST` | `/api/v1/activities` | List (with type filter) and log activity |

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import companyRoutes from "./routes/companies";
 import contactRoutes from "./routes/contacts";
+import leadRoutes from "./routes/leads";
 import { db } from "./config/db";
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/companies", companyRoutes);
 app.use("/api/v1/contacts", contactRoutes);
+app.use("/api/v1/leads", leadRoutes);
 
 // GET /api/v1/health
 app.get("/api/v1/health", (req, res) => {
