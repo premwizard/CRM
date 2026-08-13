@@ -21,6 +21,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
+import { EntityNotes } from "@/components/notes/entity-notes";
 
 interface ConvertedCompany {
   id: string;
@@ -404,6 +405,13 @@ export default function LeadDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Notes System */}
+      <EntityNotes
+        entityType="lead"
+        entityId={lead.id}
+        entityName={lead.name}
+      />
 
       {/* Activity Timeline */}
       <ActivityTimeline

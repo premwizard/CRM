@@ -125,6 +125,7 @@ model Company {
   contacts       Contact[]
   deals          Deal[]
   activities     Activity[]
+  noteRecords    Note[]
   convertedLeads Lead[]     @relation("LeadConvertedCompany")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -144,6 +145,7 @@ model Contact {
   notes          String?
   deals          Deal[]
   activities     Activity[]
+  noteRecords    Note[]
   convertedLeads Lead[]     @relation("LeadConvertedContact")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -171,6 +173,7 @@ model Lead {
   convertedDealId    String?
   convertedDeal      Deal?      @relation("LeadConvertedDeal", fields: [convertedDealId], references: [id], onDelete: SetNull)
   activities         Activity[]
+  noteRecords        Note[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -191,6 +194,7 @@ model Deal {
   expectedCloseDate DateTime?
   notes             String?
   activities        Activity[]
+  noteRecords       Note[]
   convertedLeads    Lead[]     @relation("LeadConvertedDeal")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -235,6 +239,27 @@ model Activity {
   updatedAt   DateTime     @updatedAt
 
   @@index([type])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([leadId])
+  @@index([dealId])
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  content   String
+  createdBy String?
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([contactId])
   @@index([companyId])
   @@index([leadId])

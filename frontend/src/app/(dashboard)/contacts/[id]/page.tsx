@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
+import { EntityNotes } from "@/components/notes/entity-notes";
 import {
   ArrowLeft,
   Mail,
@@ -181,6 +182,13 @@ export default function ContactDetailPage({
           </p>
         </div>
       </div>
+
+      {/* Notes System */}
+      <EntityNotes
+        entityType="contact"
+        entityId={contact.id}
+        entityName={fullName}
+      />
 
       {/* Activity Timeline Component */}
       <ActivityTimeline

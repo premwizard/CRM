@@ -98,6 +98,12 @@ ic-crm/
 - Embedded timelines on **Contact Details** (`/contacts/[id]`), **Company Details** (`/companies/[id]`), **Lead Details** (`/leads/[id]`), and **Deal Details** (`/deals/[id]`).
 - Instant activity logging directly from entity timeline views.
 
+### 📝 Dedicated CRM Notes System (`/notes` & entity details)
+- Record, view, edit, and delete rich notes attached to Contacts, Companies, Leads, and Deals.
+- Sort notes chronologically (Newest First vs Oldest First).
+- Integrated with Activity Timeline for automatic `NOTE` event logging.
+- Embedded on all entity detail pages ([/contacts/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/contacts/%5Bid%5D/page.tsx), [/companies/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/companies/%5Bid%5D/page.tsx), [/leads/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/leads/%5Bid%5D/page.tsx), [/deals/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/deals/%5Bid%5D/page.tsx)).
+
 ### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
 - Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
 - One-click executive sample report generator with print/export capabilities.
@@ -188,6 +194,8 @@ Central API prefix: `/api/v1`
 | `GET / POST` | `/api/v1/tasks` | List (with status/priority filters) and create task |
 | `GET / POST` | `/api/v1/activities` | List (with entity filtering by `contactId`, `companyId`, `leadId`, `dealId`, and `type`) and log activity |
 | `DELETE` | `/api/v1/activities/:id` | Delete activity item by ID |
+| `GET / POST` | `/api/v1/notes` | List (filtered by entity with `sort=newest` / `sort=oldest`) and create note |
+| `PUT / DELETE` | `/api/v1/notes/:id` | Edit content or delete note by ID |
 | `GET` | `/api/v1/reports/generate` | Generate executive analytics report |
 
 ---

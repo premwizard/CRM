@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
+import { EntityNotes } from "@/components/notes/entity-notes";
 import {
   ArrowLeft,
   Building2,
@@ -183,6 +184,13 @@ export default function CompanyDetailPage({
           </p>
         </div>
       </div>
+
+      {/* Notes System */}
+      <EntityNotes
+        entityType="company"
+        entityId={company.id}
+        entityName={company.name}
+      />
 
       {/* Activity Timeline Component */}
       <ActivityTimeline
