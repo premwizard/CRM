@@ -106,6 +106,12 @@ ic-crm/
 - Integrated with Activity Timeline for automatic `NOTE` event logging.
 - Embedded on all entity detail pages ([/contacts/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/contacts/%5Bid%5D/page.tsx), [/companies/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/companies/%5Bid%5D/page.tsx), [/leads/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/leads/%5Bid%5D/page.tsx), [/deals/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/deals/%5Bid%5D/page.tsx)).
 
+### 🔄 Customer Follow-Up Workflow (`/activities` & `/dashboard`)
+- Record customer interaction outcomes (`INTERESTED`, `NOT_INTERESTED`, `FOLLOW_UP_REQUIRED`, `MEETING_SCHEDULED`, `PROPOSAL_REQUESTED`, `COMPLETED`, `OTHER`).
+- Track call/meeting duration (mins), next actions, and follow-up dates.
+- Automatic follow-up task creation when selecting `FOLLOW_UP_REQUIRED` or setting a follow-up date.
+- **Today's Follow-ups** widget on Executive Dashboard ([/dashboard](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/dashboard/page.tsx)) highlighting customer name, deal value, due time, priority, and quick completion button.
+
 ### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
 - Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
 - One-click executive sample report generator with print/export capabilities.

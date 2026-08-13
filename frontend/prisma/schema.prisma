@@ -71,6 +71,16 @@ enum ActivityType {
   OTHER
 }
 
+enum ActivityOutcome {
+  INTERESTED
+  NOT_INTERESTED
+  FOLLOW_UP_REQUIRED
+  MEETING_SCHEDULED
+  PROPOSAL_REQUESTED
+  COMPLETED
+  OTHER
+}
+
 model User {
   id               String               @id @default(uuid())
   email            String               @unique
@@ -225,6 +235,7 @@ model Task {
   lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   dealId      String?
   deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  activities  Activity[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -238,27 +249,35 @@ model Task {
 }
 
 model Activity {
-  id          String       @id @default(uuid())
-  title       String
-  type        ActivityType @default(NOTE)
-  description String?
-  contactId   String?
-  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  companyId   String?
-  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  leadId      String?
-  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  dealId      String?
-  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  performedBy String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String           @id @default(uuid())
+  title        String
+  type         ActivityType     @default(NOTE)
+  description  String?
+  outcome      ActivityOutcome?
+  duration     Int?
+  nextAction   String?
+  followUpDate DateTime?
+  taskId       String?
+  task         Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  contactId    String?
+  contact      Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId    String?
+  company      Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leadId       String?
+  lead         Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  dealId       String?
+  deal         Deal?            @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  performedBy  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@index([type])
+  @@index([outcome])
   @@index([contactId])
   @@index([companyId])
   @@index([leadId])
   @@index([dealId])
+  @@index([taskId])
 }
 
 model Note {
