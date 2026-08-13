@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -13,6 +14,7 @@ import {
   Phone,
   Building2,
   Briefcase,
+  Eye,
 } from "lucide-react";
 
 interface CompanyOption {
@@ -236,7 +238,15 @@ export default function ContactsPage() {
                     className="hover:bg-accent/40 transition-colors"
                   >
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      {contact.firstName} {contact.lastName}
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                      >
+                        <span>
+                          {contact.firstName} {contact.lastName}
+                        </span>
+                        <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-muted-foreground text-xs">
                       {contact.jobTitle ? (

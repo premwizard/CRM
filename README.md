@@ -92,9 +92,11 @@ ic-crm/
 - To-do list management with `TaskPriority` (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) and `TaskStatus` (`TODO`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`).
 - Due date scheduling and team member assignment fields.
 
-### 📞 Activity Timeline (`/activities`)
-- Record customer interaction history (`CALL`, `EMAIL`, `MEETING`, `NOTE`, `OTHER`).
-- Connect interaction logs directly to specific contacts or pipeline deals.
+### 📞 Unified CRM Activity Timeline (`/activities` & entity details)
+- Record complete interaction history (`CALL`, `EMAIL`, `MEETING`, `NOTE`, `TASK`, `OTHER`).
+- Reusable timeline UI component with date grouping (Today, Yesterday, Date), icon badges, performer user stamps, and deletion support.
+- Embedded timelines on **Contact Details** (`/contacts/[id]`), **Company Details** (`/companies/[id]`), **Lead Details** (`/leads/[id]`), and **Deal Details** (`/deals/[id]`).
+- Instant activity logging directly from entity timeline views.
 
 ### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
 - Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
@@ -184,7 +186,8 @@ Central API prefix: `/api/v1`
 | `POST` | `/api/v1/leads/:id/convert` | **Convert lead** to Company, Contact, and Deal (Transaction-safe) |
 | `GET / POST` | `/api/v1/deals` | List (with search/filter) and create deal |
 | `GET / POST` | `/api/v1/tasks` | List (with status/priority filters) and create task |
-| `GET / POST` | `/api/v1/activities` | List (with type filter) and log activity |
+| `GET / POST` | `/api/v1/activities` | List (with entity filtering by `contactId`, `companyId`, `leadId`, `dealId`, and `type`) and log activity |
+| `DELETE` | `/api/v1/activities/:id` | Delete activity item by ID |
 | `GET` | `/api/v1/reports/generate` | Generate executive analytics report |
 
 ---

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -12,6 +13,7 @@ import {
   Building2,
   User,
   Calendar,
+  Eye,
 } from "lucide-react";
 
 const DEAL_STAGES = [
@@ -297,7 +299,13 @@ export default function DealsPage() {
                     className="hover:bg-accent/40 transition-colors"
                   >
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      {deal.name}
+                      <Link
+                        href={`/deals/${deal.id}`}
+                        className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                      >
+                        <span>{deal.name}</span>
+                        <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                      </Link>
                     </td>
                     <td className="px-6 py-4 font-bold text-foreground">
                       ${deal.value ? deal.value.toLocaleString() : "0"}

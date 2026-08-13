@@ -20,6 +20,7 @@ import {
   Briefcase,
   ExternalLink,
 } from "lucide-react";
+import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 
 interface ConvertedCompany {
   id: string;
@@ -403,6 +404,13 @@ export default function LeadDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Activity Timeline */}
+      <ActivityTimeline
+        entityType="lead"
+        entityId={lead.id}
+        entityName={lead.name}
+      />
 
       {/* Convert Modal */}
       <LeadConvertModal

@@ -9,15 +9,21 @@ const activitySchema = z.object({
   type: z.nativeEnum(ActivityType).default(ActivityType.NOTE),
   description: z.string().optional().nullable(),
   contactId: z.string().optional().nullable(),
+  companyId: z.string().optional().nullable(),
+  leadId: z.string().optional().nullable(),
   dealId: z.string().optional().nullable(),
   performedBy: z.string().optional().nullable(),
 });
 
-// GET /api/v1/activities (list + search + type filter)
+// GET /api/v1/activities (list + search + type + entity filters)
 export async function GET(request: NextRequest) {
   try {
     const search = request.nextUrl.searchParams.get("search") || "";
     const type = request.nextUrl.searchParams.get("type");
+    const contactId = request.nextUrl.searchParams.get("contactId");
+    const companyId = request.nextUrl.searchParams.get("companyId");
+    const leadId = request.nextUrl.searchParams.get("leadId");
+    const dealId = request.nextUrl.searchParams.get("dealId");
 
     const AND: Record<string, unknown>[] = [];
 
@@ -34,12 +40,19 @@ export async function GET(request: NextRequest) {
       AND.push({ type: type as ActivityType });
     }
 
+    if (contactId) AND.push({ contactId });
+    if (companyId) AND.push({ companyId });
+    if (leadId) AND.push({ leadId });
+    if (dealId) AND.push({ dealId });
+
     const where = AND.length > 0 ? { AND } : {};
 
     const activities = await db.activity.findMany({
       where,
       include: {
         contact: { select: { id: true, firstName: true, lastName: true } },
+        company: { select: { id: true, name: true } },
+        lead: { select: { id: true, name: true } },
         deal: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -65,10 +78,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const headerUserEmail = request.headers.get("x-user-email");
+    const performedBy =
+      parsed.data.performedBy || headerUserEmail || "System User";
+
     const activity = await db.activity.create({
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        performedBy,
+      },
       include: {
         contact: { select: { id: true, firstName: true, lastName: true } },
+        company: { select: { id: true, name: true } },
+        lead: { select: { id: true, name: true } },
         deal: { select: { id: true, name: true } },
       },
     });

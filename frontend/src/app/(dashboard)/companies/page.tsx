@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -14,6 +15,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  Eye,
 } from "lucide-react";
 
 interface Company {
@@ -214,7 +216,13 @@ export default function CompaniesPage() {
                     className="hover:bg-accent/40 transition-colors"
                   >
                     <td className="px-6 py-4 font-semibold text-foreground">
-                      <div>{company.name}</div>
+                      <Link
+                        href={`/companies/${company.id}`}
+                        className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                      >
+                        <span>{company.name}</span>
+                        <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                      </Link>
                       {company.website && (
                         <a
                           href={

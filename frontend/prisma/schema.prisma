@@ -67,6 +67,7 @@ enum ActivityType {
   EMAIL
   MEETING
   NOTE
+  TASK
   OTHER
 }
 
@@ -113,7 +114,7 @@ model OrganizationMember {
 }
 
 model Company {
-  id             String    @id @default(uuid())
+  id             String     @id @default(uuid())
   name           String
   industry       String?
   website        String?
@@ -123,9 +124,10 @@ model Company {
   notes          String?
   contacts       Contact[]
   deals          Deal[]
-  convertedLeads Lead[]    @relation("LeadConvertedCompany")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  activities     Activity[]
+  convertedLeads Lead[]     @relation("LeadConvertedCompany")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([name])
 }
@@ -168,6 +170,7 @@ model Lead {
   convertedContact   Contact?   @relation("LeadConvertedContact", fields: [convertedContactId], references: [id], onDelete: SetNull)
   convertedDealId    String?
   convertedDeal      Deal?      @relation("LeadConvertedDeal", fields: [convertedDealId], references: [id], onDelete: SetNull)
+  activities         Activity[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -221,6 +224,10 @@ model Activity {
   description String?
   contactId   String?
   contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId   String?
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   dealId      String?
   deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
   performedBy String?
@@ -229,5 +236,7 @@ model Activity {
 
   @@index([type])
   @@index([contactId])
+  @@index([companyId])
+  @@index([leadId])
   @@index([dealId])
 }
