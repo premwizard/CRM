@@ -84,9 +84,12 @@ ic-crm/
   - Transaction safety ensuring partial conversions roll back completely on error.
   - Status lock disabling re-conversion of `CONVERTED` leads and prohibiting conversion of `LOST` leads.
 
-### 💼 Deals & Pipeline (`/deals`)
-- Sales pipeline management across deal stages (`NEW`, `QUALIFIED`, `PROPOSAL`, `NEGOTIATION`, `WON`, `LOST`).
-- Expected revenue close date pickers and relational links to both Company and Contact records.
+### 💼 Deals & Visual Sales Pipeline (`/deals`)
+- Interactive Kanban Board with drag-and-drop between 6 pipeline stages (`NEW`, `QUALIFIED`, `PROPOSAL`, `NEGOTIATION`, `WON`, `LOST`).
+- View toggle between **Board** (Kanban columns) and **List** (Table view).
+- Stage financial metrics (sum per column & deal count) and total pipeline volume header.
+- Stage transition audit logging (`DealStageHistory`) and automatic Activity timeline event logging (`Stage changed: OldStage → NewStage`).
+- Deal cards with name, company, contact, value, probability %, expected close date, and owner.
 
 ### 📋 CRM-Linked Tasks & Reminders (`/tasks` & entity details)
 - To-do list management with `TaskPriority` (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) and `TaskStatus` (`TODO`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`).

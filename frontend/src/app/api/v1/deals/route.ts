@@ -10,9 +10,30 @@ const dealSchema = z.object({
   contactId: z.string().optional().nullable(),
   value: z.number().nonnegative().default(0),
   stage: z.nativeEnum(DealStage).default(DealStage.NEW),
+  probability: z.number().min(0).max(100).optional(),
+  owner: z.string().optional().nullable(),
   expectedCloseDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
+
+const defaultProbabilityForStage = (stage: DealStage): number => {
+  switch (stage) {
+    case DealStage.NEW:
+      return 10;
+    case DealStage.QUALIFIED:
+      return 30;
+    case DealStage.PROPOSAL:
+      return 60;
+    case DealStage.NEGOTIATION:
+      return 80;
+    case DealStage.WON:
+      return 100;
+    case DealStage.LOST:
+      return 0;
+    default:
+      return 50;
+  }
+};
 
 // GET /api/v1/deals (list + search + stage filter)
 export async function GET(request: NextRequest) {
@@ -39,6 +60,7 @@ export async function GET(request: NextRequest) {
       include: {
         company: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
+        stageHistory: { orderBy: { createdAt: "desc" }, take: 5 },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -65,11 +87,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { expectedCloseDate, ...restData } = parsed.data;
+    const { expectedCloseDate, probability, stage, ...restData } = parsed.data;
+    const calcProb = probability ?? defaultProbabilityForStage(stage);
 
     const deal = await db.deal.create({
       data: {
         ...restData,
+        stage,
+        probability: calcProb,
         expectedCloseDate: expectedCloseDate
           ? new Date(expectedCloseDate)
           : null,

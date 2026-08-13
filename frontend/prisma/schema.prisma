@@ -196,27 +196,42 @@ model Lead {
 }
 
 model Deal {
-  id                String     @id @default(uuid())
+  id                String             @id @default(uuid())
   name              String
   companyId         String?
-  company           Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  company           Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
   contactId         String?
-  contact           Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  value             Float      @default(0)
-  stage             DealStage  @default(NEW)
+  contact           Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  value             Float              @default(0)
+  stage             DealStage          @default(NEW)
+  probability       Int?               @default(50)
+  owner             String?
   expectedCloseDate DateTime?
   notes             String?
   activities        Activity[]
   noteRecords       Note[]
   taskRecords       Task[]
-  convertedLeads    Lead[]     @relation("LeadConvertedDeal")
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  convertedLeads    Lead[]             @relation("LeadConvertedDeal")
+  stageHistory      DealStageHistory[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([stage])
   @@index([companyId])
   @@index([contactId])
   @@index([name])
+}
+
+model DealStageHistory {
+  id        String    @id @default(uuid())
+  dealId    String
+  deal      Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  fromStage DealStage
+  toStage   DealStage
+  changedBy String?
+  createdAt DateTime  @default(now())
+
+  @@index([dealId])
 }
 
 model Task {

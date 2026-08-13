@@ -8,6 +8,7 @@ import leadRoutes from "./routes/leads";
 import activityRoutes from "./routes/activities";
 import noteRoutes from "./routes/notes";
 import taskRoutes from "./routes/tasks";
+import dealRoutes from "./routes/deals";
 import { db } from "./config/db";
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/activities", activityRoutes);
 app.use("/api/v1/notes", noteRoutes);
 app.use("/api/v1/tasks", taskRoutes);
+app.use("/api/v1/deals", dealRoutes);
 
 // GET /api/v1/health
 app.get("/api/v1/health", (req, res) => {
