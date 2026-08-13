@@ -4,6 +4,7 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
+import { EntityTasks } from "@/components/tasks/entity-tasks";
 import {
   ArrowLeft,
   Briefcase,
@@ -222,6 +223,13 @@ export default function DealDetailPage({
 
       {/* Notes System */}
       <EntityNotes
+        entityType="deal"
+        entityId={deal.id}
+        entityName={deal.name}
+      />
+
+      {/* Tasks System */}
+      <EntityTasks
         entityType="deal"
         entityId={deal.id}
         entityName={deal.name}

@@ -11,7 +11,18 @@ const taskSchema = z.object({
   priority: z.nativeEnum(TaskPriority).optional(),
   status: z.nativeEnum(TaskStatus).optional(),
   assignedTo: z.string().optional().nullable(),
+  contactId: z.string().optional().nullable(),
+  companyId: z.string().optional().nullable(),
+  leadId: z.string().optional().nullable(),
+  dealId: z.string().optional().nullable(),
 });
+
+const includeRelations = {
+  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+  company: { select: { id: true, name: true } },
+  lead: { select: { id: true, name: true } },
+  deal: { select: { id: true, name: true } },
+};
 
 // GET /api/v1/tasks/[id]
 export async function GET(
@@ -22,6 +33,7 @@ export async function GET(
     const { id } = await context.params;
     const task = await db.task.findUnique({
       where: { id },
+      include: includeRelations,
     });
 
     if (!task) {
@@ -54,14 +66,19 @@ export async function PUT(
       );
     }
 
-    const { dueDate, ...restData } = parsed.data;
+    const { dueDate, contactId, companyId, leadId, dealId, ...restData } = parsed.data;
 
     const task = await db.task.update({
       where: { id },
       data: {
         ...restData,
         dueDate: dueDate ? new Date(dueDate) : null,
+        contactId: contactId === undefined ? undefined : (contactId || null),
+        companyId: companyId === undefined ? undefined : (companyId || null),
+        leadId: leadId === undefined ? undefined : (leadId || null),
+        dealId: dealId === undefined ? undefined : (dealId || null),
       },
+      include: includeRelations,
     });
 
     return apiSuccess({ task }, "Task updated successfully");

@@ -88,9 +88,11 @@ ic-crm/
 - Sales pipeline management across deal stages (`NEW`, `QUALIFIED`, `PROPOSAL`, `NEGOTIATION`, `WON`, `LOST`).
 - Expected revenue close date pickers and relational links to both Company and Contact records.
 
-### 📋 Tasks & Reminders (`/tasks`)
+### 📋 CRM-Linked Tasks & Reminders (`/tasks` & entity details)
 - To-do list management with `TaskPriority` (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) and `TaskStatus` (`TODO`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`).
-- Due date scheduling and team member assignment fields.
+- Due date scheduling, team member assignment fields, and **OVERDUE** indicators for past due tasks.
+- Directly link tasks to primary CRM entities (**Contact**, **Company**, **Lead**, **Deal**) with entity selectors and clickable links.
+- Embedded task management component (`EntityTasks`) on all detail pages ([/contacts/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/contacts/%5Bid%5D/page.tsx), [/companies/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/companies/%5Bid%5D/page.tsx), [/leads/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/leads/%5Bid%5D/page.tsx), [/deals/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/deals/%5Bid%5D/page.tsx)).
 
 ### 📞 Unified CRM Activity Timeline (`/activities` & entity details)
 - Record complete interaction history (`CALL`, `EMAIL`, `MEETING`, `NOTE`, `TASK`, `OTHER`).
@@ -191,7 +193,8 @@ Central API prefix: `/api/v1`
 | `GET` | `/api/v1/leads/:id` | Get lead details with converted relations |
 | `POST` | `/api/v1/leads/:id/convert` | **Convert lead** to Company, Contact, and Deal (Transaction-safe) |
 | `GET / POST` | `/api/v1/deals` | List (with search/filter) and create deal |
-| `GET / POST` | `/api/v1/tasks` | List (with status/priority filters) and create task |
+| `GET / POST` | `/api/v1/tasks` | List (with status, priority, and entity filters `contactId`, `companyId`, `leadId`, `dealId`) and create task |
+| `PUT / DELETE` | `/api/v1/tasks/:id` | Update status, priority, entity linkage, or delete task |
 | `GET / POST` | `/api/v1/activities` | List (with entity filtering by `contactId`, `companyId`, `leadId`, `dealId`, and `type`) and log activity |
 | `DELETE` | `/api/v1/activities/:id` | Delete activity item by ID |
 | `GET / POST` | `/api/v1/notes` | List (filtered by entity with `sort=newest` / `sort=oldest`) and create note |

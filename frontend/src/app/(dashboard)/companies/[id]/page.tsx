@@ -4,6 +4,7 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
+import { EntityTasks } from "@/components/tasks/entity-tasks";
 import {
   ArrowLeft,
   Building2,
@@ -187,6 +188,13 @@ export default function CompanyDetailPage({
 
       {/* Notes System */}
       <EntityNotes
+        entityType="company"
+        entityId={company.id}
+        entityName={company.name}
+      />
+
+      {/* Tasks System */}
+      <EntityTasks
         entityType="company"
         entityId={company.id}
         entityName={company.name}

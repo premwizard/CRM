@@ -4,6 +4,7 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
+import { EntityTasks } from "@/components/tasks/entity-tasks";
 import {
   ArrowLeft,
   Mail,
@@ -185,6 +186,13 @@ export default function ContactDetailPage({
 
       {/* Notes System */}
       <EntityNotes
+        entityType="contact"
+        entityId={contact.id}
+        entityName={fullName}
+      />
+
+      {/* Tasks System */}
+      <EntityTasks
         entityType="contact"
         entityId={contact.id}
         entityName={fullName}

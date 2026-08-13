@@ -11,7 +11,18 @@ const taskSchema = z.object({
   priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   assignedTo: z.string().optional().nullable(),
+  contactId: z.string().optional().nullable(),
+  companyId: z.string().optional().nullable(),
+  leadId: z.string().optional().nullable(),
+  dealId: z.string().optional().nullable(),
 });
+
+const includeRelations = {
+  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+  company: { select: { id: true, name: true } },
+  lead: { select: { id: true, name: true } },
+  deal: { select: { id: true, name: true } },
+};
 
 // GET /api/v1/tasks
 export async function GET(request: NextRequest) {
@@ -19,6 +30,10 @@ export async function GET(request: NextRequest) {
     const search = request.nextUrl.searchParams.get("search") || "";
     const status = request.nextUrl.searchParams.get("status");
     const priority = request.nextUrl.searchParams.get("priority");
+    const contactId = request.nextUrl.searchParams.get("contactId");
+    const companyId = request.nextUrl.searchParams.get("companyId");
+    const leadId = request.nextUrl.searchParams.get("leadId");
+    const dealId = request.nextUrl.searchParams.get("dealId");
 
     const AND: Record<string, unknown>[] = [];
 
@@ -42,10 +57,16 @@ export async function GET(request: NextRequest) {
       AND.push({ priority: priority as TaskPriority });
     }
 
+    if (contactId) AND.push({ contactId });
+    if (companyId) AND.push({ companyId });
+    if (leadId) AND.push({ leadId });
+    if (dealId) AND.push({ dealId });
+
     const where = AND.length > 0 ? { AND } : {};
 
     const tasks = await db.task.findMany({
       where,
+      include: includeRelations,
       orderBy: { createdAt: "desc" },
     });
 
@@ -69,13 +90,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { dueDate, ...restData } = parsed.data;
+    const { dueDate, contactId, companyId, leadId, dealId, ...restData } = parsed.data;
 
     const task = await db.task.create({
       data: {
         ...restData,
         dueDate: dueDate ? new Date(dueDate) : null,
+        contactId: contactId || null,
+        companyId: companyId || null,
+        leadId: leadId || null,
+        dealId: dealId || null,
       },
+      include: includeRelations,
     });
     return apiSuccess({ task }, "Task created successfully", 201);
   } catch (error) {

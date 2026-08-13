@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -13,6 +14,11 @@ import {
   User,
   Clock,
   AlertCircle,
+  Building2,
+  UserCheck,
+  Target,
+  Briefcase,
+  Link as LinkIcon,
 } from "lucide-react";
 
 const TASK_STATUSES = ["TODO", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
@@ -26,6 +32,19 @@ interface TaskItem {
   priority: string;
   status: string;
   assignedTo?: string | null;
+  contactId?: string | null;
+  companyId?: string | null;
+  leadId?: string | null;
+  dealId?: string | null;
+  contact?: { id: string; firstName: string; lastName: string; email: string } | null;
+  company?: { id: string; name: string } | null;
+  lead?: { id: string; name: string } | null;
+  deal?: { id: string; name: string } | null;
+}
+
+interface EntityOption {
+  id: string;
+  name: string;
 }
 
 export default function TasksPage() {
@@ -34,6 +53,12 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
+
+  // Entity dropdown options
+  const [contacts, setContacts] = useState<EntityOption[]>([]);
+  const [companies, setCompanies] = useState<EntityOption[]>([]);
+  const [leads, setLeads] = useState<EntityOption[]>([]);
+  const [deals, setDeals] = useState<EntityOption[]>([]);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,9 +73,71 @@ export default function TasksPage() {
     priority: "MEDIUM",
     status: "TODO",
     assignedTo: "",
+    contactId: "",
+    companyId: "",
+    leadId: "",
+    dealId: "",
   });
 
   const [saving, setSaving] = useState(false);
+
+  const fetchEntities = async () => {
+    try {
+      const [resContacts, resCompanies, resLeads, resDeals] = await Promise.all([
+        fetch("/api/v1/contacts"),
+        fetch("/api/v1/companies"),
+        fetch("/api/v1/leads"),
+        fetch("/api/v1/deals"),
+      ]);
+
+      const [dataC, dataComp, dataL, dataD] = await Promise.all([
+        resContacts.json(),
+        resCompanies.json(),
+        resLeads.json(),
+        resDeals.json(),
+      ]);
+
+      if (dataC.success) {
+        setContacts(
+          (dataC.data.contacts || []).map(
+            (c: { id: string; firstName: string; lastName: string }) => ({
+              id: c.id,
+              name: `${c.firstName} ${c.lastName}`,
+            }),
+          ),
+        );
+      }
+
+      if (dataComp.success) {
+        setCompanies(
+          (dataComp.data.companies || []).map((c: { id: string; name: string }) => ({
+            id: c.id,
+            name: c.name,
+          })),
+        );
+      }
+
+      if (dataL.success) {
+        setLeads(
+          (dataL.data.leads || []).map((l: { id: string; name: string }) => ({
+            id: l.id,
+            name: l.name,
+          })),
+        );
+      }
+
+      if (dataD.success) {
+        setDeals(
+          (dataD.data.deals || []).map((d: { id: string; name: string }) => ({
+            id: d.id,
+            name: d.name,
+          })),
+        );
+      }
+    } catch {
+      // Fallback
+    }
+  };
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -72,6 +159,10 @@ export default function TasksPage() {
   };
 
   useEffect(() => {
+    fetchEntities();
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchTasks();
     }, 300);
@@ -87,6 +178,10 @@ export default function TasksPage() {
       priority: "MEDIUM",
       status: "TODO",
       assignedTo: "",
+      contactId: "",
+      companyId: "",
+      leadId: "",
+      dealId: "",
     });
     setIsModalOpen(true);
   };
@@ -102,6 +197,10 @@ export default function TasksPage() {
       priority: task.priority,
       status: task.status,
       assignedTo: task.assignedTo || "",
+      contactId: task.contactId || "",
+      companyId: task.companyId || "",
+      leadId: task.leadId || "",
+      dealId: task.dealId || "",
     });
     setIsModalOpen(true);
   };
@@ -144,7 +243,6 @@ export default function TasksPage() {
       setSaving(false);
       if (res.ok) {
         setIsDeleteModalOpen(false);
-        setSelectedTask(null);
         fetchTasks();
       }
     } catch {
@@ -152,65 +250,73 @@ export default function TasksPage() {
     }
   };
 
-  const getPriorityBadge = (p: string) => {
-    switch (p) {
+  const isOverdue = (task: TaskItem) => {
+    if (!task.dueDate) return false;
+    if (task.status === "COMPLETED" || task.status === "CANCELLED") return false;
+    const due = new Date(task.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
       case "URGENT":
-        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
+        return "bg-red-500/10 text-red-600 border-red-500/20";
       case "HIGH":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
       case "MEDIUM":
-        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
       default:
-        return "bg-secondary text-secondary-foreground";
+        return "bg-slate-500/10 text-slate-600 border-slate-500/20";
     }
   };
 
-  const getStatusBadge = (s: string) => {
-    switch (s) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case "COMPLETED":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+        return "bg-green-500/10 text-green-600 border-green-500/20";
       case "IN_PROGRESS":
-        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
       case "CANCELLED":
-        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
+        return "bg-slate-500/10 text-slate-500 border-slate-500/20";
       default:
-        return "bg-secondary text-secondary-foreground";
+        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tasks & Reminders"
-        description="Create follow-up tasks, schedule due dates, assign priority, and manage to-do items."
+        title="Tasks & To-Dos"
+        description="Schedule follow-up actions, assign team members, and track related CRM items."
         actionText="Create Task"
         onAction={handleOpenCreate}
-        icon={CheckSquare}
       />
 
-      {/* Toolbar & Filters */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card p-4 rounded-lg border border-border">
-        <div className="relative flex-1 w-full max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      {/* Filter Bar */}
+      <div className="bg-card p-4 rounded-lg border border-border flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search tasks by title or description..."
+            placeholder="Search tasks..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">All Statuses</option>
             {TASK_STATUSES.map((st) => (
               <option key={st} value={st}>
-                {st}
+                {st.replace("_", " ")}
               </option>
             ))}
           </select>
@@ -218,7 +324,7 @@ export default function TasksPage() {
           <select
             value={selectedPriority}
             onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">All Priorities</option>
             {TASK_PRIORITIES.map((p) => (
@@ -231,12 +337,13 @@ export default function TasksPage() {
       </div>
 
       {/* Tasks Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
+      <div className="bg-card rounded-lg border border-border overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-secondary/50 text-muted-foreground font-semibold border-b border-border uppercase text-[11px] tracking-wider">
+            <thead className="bg-muted/50 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
               <tr>
-                <th className="px-6 py-3.5">Task Title</th>
+                <th className="px-6 py-3.5">Task</th>
+                <th className="px-6 py-3.5">Related Entity</th>
                 <th className="px-6 py-3.5">Priority</th>
                 <th className="px-6 py-3.5">Status</th>
                 <th className="px-6 py-3.5">Assigned To</th>
@@ -248,7 +355,7 @@ export default function TasksPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
                     Loading tasks...
@@ -257,7 +364,7 @@ export default function TasksPage() {
               ) : tasks.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-muted-foreground"
                   >
                     No tasks found. Click "Create Task" to schedule a to-do
@@ -265,76 +372,155 @@ export default function TasksPage() {
                   </td>
                 </tr>
               ) : (
-                tasks.map((task) => (
-                  <tr
-                    key={task.id}
-                    className="hover:bg-accent/40 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-semibold text-foreground">
-                      <div>{task.title}</div>
-                      {task.description && (
-                        <p className="text-xs text-muted-foreground font-normal mt-0.5 max-w-sm truncate">
-                          {task.description}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-xs">
-                      <span
-                        className={`px-2.5 py-1 rounded-md border font-semibold ${getPriorityBadge(task.priority)}`}
-                      >
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs">
-                      <span
-                        className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(task.status)}`}
-                      >
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground">
-                      {task.assignedTo ? (
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{task.assignedTo}</span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground">
-                      {task.dueDate ? (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-primary" />
-                          <span>
-                            {new Date(task.dueDate).toLocaleDateString()}
+                tasks.map((task) => {
+                  const overdue = isOverdue(task);
+                  return (
+                    <tr
+                      key={task.id}
+                      className={`transition-colors ${
+                        overdue
+                          ? "bg-red-500/5 hover:bg-red-500/10"
+                          : "hover:bg-accent/40"
+                      }`}
+                    >
+                      <td className="px-6 py-4 font-semibold text-foreground">
+                        <div className="flex items-center gap-2">
+                          {overdue && (
+                            <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-red-600 text-white rounded tracking-wider flex items-center gap-1 shrink-0 animate-pulse">
+                              <AlertCircle className="w-3 h-3" />
+                              OVERDUE
+                            </span>
+                          )}
+                          <span
+                            className={
+                              task.status === "COMPLETED"
+                                ? "line-through text-muted-foreground"
+                                : ""
+                            }
+                          >
+                            {task.title}
                           </span>
                         </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenEdit(task)}
-                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                        title="Edit Task"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedTask(task);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                        title="Delete Task"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground font-normal mt-0.5 max-w-xs truncate">
+                            {task.description}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Related Entity Badge */}
+                      <td className="px-6 py-4 text-xs font-medium">
+                        {task.contact ? (
+                          <Link
+                            href={`/contacts/${task.contact.id}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>
+                              {task.contact.firstName} {task.contact.lastName}
+                            </span>
+                          </Link>
+                        ) : task.company ? (
+                          <Link
+                            href={`/companies/${task.company.id}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>{task.company.name}</span>
+                          </Link>
+                        ) : task.lead ? (
+                          <Link
+                            href={`/leads/${task.lead.id}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-600 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                          >
+                            <Target className="w-3.5 h-3.5" />
+                            <span>{task.lead.name}</span>
+                          </Link>
+                        ) : task.deal ? (
+                          <Link
+                            href={`/deals/${task.deal.id}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                          >
+                            <Briefcase className="w-3.5 h-3.5" />
+                            <span>{task.deal.name}</span>
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground text-xs font-normal">
+                            General
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 text-xs">
+                        <span
+                          className={`px-2.5 py-1 rounded-md border font-semibold ${getPriorityBadge(
+                            task.priority,
+                          )}`}
+                        >
+                          {task.priority}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-xs">
+                        <span
+                          className={`px-2.5 py-1 rounded-md border font-semibold ${getStatusBadge(
+                            task.status,
+                          )}`}
+                        >
+                          {task.status.replace("_", " ")}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {task.assignedTo ? (
+                          <div className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5" />
+                            <span>{task.assignedTo}</span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {task.dueDate ? (
+                          <div
+                            className={`flex items-center gap-1.5 ${
+                              overdue ? "text-red-600 font-bold" : ""
+                            }`}
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>
+                              {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <button
+                          onClick={() => handleOpenEdit(task)}
+                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          title="Edit Task"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedTask(task);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                          title="Delete Task"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -378,6 +564,120 @@ export default function TasksPage() {
             />
           </div>
 
+          {/* CRM Entity Selection */}
+          <div className="bg-accent/30 p-3 rounded-lg border border-border space-y-3">
+            <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <LinkIcon className="w-3.5 h-3.5 text-primary" />
+              Related CRM Entity (Optional)
+            </span>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Contact
+                </label>
+                <select
+                  value={formData.contactId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      contactId: e.target.value,
+                      companyId: "",
+                      leadId: "",
+                      dealId: "",
+                    })
+                  }
+                  className="w-full px-2.5 py-1.5 bg-background border border-input rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">-- None --</option>
+                  {contacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Company
+                </label>
+                <select
+                  value={formData.companyId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      companyId: e.target.value,
+                      contactId: "",
+                      leadId: "",
+                      dealId: "",
+                    })
+                  }
+                  className="w-full px-2.5 py-1.5 bg-background border border-input rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">-- None --</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Lead
+                </label>
+                <select
+                  value={formData.leadId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      leadId: e.target.value,
+                      contactId: "",
+                      companyId: "",
+                      dealId: "",
+                    })
+                  }
+                  className="w-full px-2.5 py-1.5 bg-background border border-input rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">-- None --</option>
+                  {leads.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                  Deal
+                </label>
+                <select
+                  value={formData.dealId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      dealId: e.target.value,
+                      contactId: "",
+                      companyId: "",
+                      leadId: "",
+                    })
+                  }
+                  className="w-full px-2.5 py-1.5 bg-background border border-input rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">-- None --</option>
+                  {deals.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
@@ -411,7 +711,7 @@ export default function TasksPage() {
               >
                 {TASK_STATUSES.map((st) => (
                   <option key={st} value={st}>
-                    {st}
+                    {st.replace("_", " ")}
                   </option>
                 ))}
               </select>

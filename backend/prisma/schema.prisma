@@ -126,6 +126,7 @@ model Company {
   deals          Deal[]
   activities     Activity[]
   noteRecords    Note[]
+  taskRecords    Task[]
   convertedLeads Lead[]     @relation("LeadConvertedCompany")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -146,6 +147,7 @@ model Contact {
   deals          Deal[]
   activities     Activity[]
   noteRecords    Note[]
+  taskRecords    Task[]
   convertedLeads Lead[]     @relation("LeadConvertedContact")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -174,6 +176,7 @@ model Lead {
   convertedDeal      Deal?      @relation("LeadConvertedDeal", fields: [convertedDealId], references: [id], onDelete: SetNull)
   activities         Activity[]
   noteRecords        Note[]
+  taskRecords        Task[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -195,6 +198,7 @@ model Deal {
   notes             String?
   activities        Activity[]
   noteRecords       Note[]
+  taskRecords       Task[]
   convertedLeads    Lead[]     @relation("LeadConvertedDeal")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -213,12 +217,24 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   status      TaskStatus   @default(TODO)
   assignedTo  String?
+  contactId   String?
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId   String?
+  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  dealId      String?
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([status])
   @@index([priority])
   @@index([title])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([leadId])
+  @@index([dealId])
 }
 
 model Activity {

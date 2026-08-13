@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ActivityTimeline } from "@/components/timeline/activity-timeline";
 import { EntityNotes } from "@/components/notes/entity-notes";
+import { EntityTasks } from "@/components/tasks/entity-tasks";
 
 interface ConvertedCompany {
   id: string;
@@ -408,6 +409,13 @@ export default function LeadDetailPage({
 
       {/* Notes System */}
       <EntityNotes
+        entityType="lead"
+        entityId={lead.id}
+        entityName={lead.name}
+      />
+
+      {/* Tasks System */}
+      <EntityTasks
         entityType="lead"
         entityId={lead.id}
         entityName={lead.name}
