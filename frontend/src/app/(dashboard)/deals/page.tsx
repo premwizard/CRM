@@ -453,8 +453,20 @@ function DealsContent() {
       ) : viewMode === "board" ? (
         <DealKanbanBoard
           deals={deals}
-          onDealsUpdated={fetchDeals}
-          onOpenCreateStage={handleOpenCreate}
+          onStageChange={async (dealId, newStage) => {
+            await fetch(`/api/v1/deals/${dealId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ stage: newStage }),
+            });
+            fetchDeals();
+          }}
+          onEditDeal={(deal) => handleOpenEdit(deal as any)}
+          onDeleteDeal={(deal) => {
+            setSelectedDeal(deal as any);
+            setIsDeleteModalOpen(true);
+          }}
+          onCreateDealInStage={handleOpenCreate}
         />
       ) : (
         /* Table View */
