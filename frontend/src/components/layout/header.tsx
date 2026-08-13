@@ -3,7 +3,8 @@
 import React from "react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { useAuth } from "@/components/providers/auth-provider";
-import { Search, Bell, User, LogOut } from "lucide-react";
+import { GlobalSearch } from "@/components/search/global-search";
+import { Bell, User, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Header() {
@@ -17,15 +18,8 @@ export function Header() {
 
   return (
     <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
-      {/* Search Bar */}
-      <div className="relative w-80">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Global CRM search..."
-          className="w-full pl-9 pr-4 py-1.5 text-sm bg-secondary/50 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-background transition-all"
-        />
-      </div>
+      {/* Interactive Global Search */}
+      <GlobalSearch />
 
       {/* Header Actions */}
       <div className="flex items-center gap-3">

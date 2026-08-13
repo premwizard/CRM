@@ -116,6 +116,12 @@ ic-crm/
 - **Saved Customer Segments Hub** ([/segments](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/segments/page.tsx)): Create, save, and manage target audience rule sets.
 - Dynamic PostgreSQL query evaluation: Reopen any saved segment to immediately evaluate filter rules against real-time database records.
 
+### 🔍 Global Search (`Header` & `/api/v1/search`)
+- Server-side full-text search across 6 core CRM entities (**Contacts**, **Companies**, **Leads**, **Deals**, **Tasks**, **Activities**).
+- 300ms debounced input preventing unnecessary database queries.
+- Categorized result dropdown grouping matching records with direct navigation links.
+- Keyboard shortcut support (`Ctrl+K` / `⌘K` to open/focus search, Arrow key selection, Enter to navigate, Escape to dismiss).
+
 ### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
 - Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
 - One-click executive sample report generator with print/export capabilities.
