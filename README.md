@@ -122,6 +122,13 @@ ic-crm/
 - Categorized result dropdown grouping matching records with direct navigation links.
 - Keyboard shortcut support (`Ctrl+K` / `⌘K` to open/focus search, Arrow key selection, Enter to navigate, Escape to dismiss).
 
+### 📊 Advanced Data Tables & Server-Side Pagination
+- Server-side pagination (`page`, `pageSize`: 10, 25, 50, 100 per page) across **Contacts**, **Companies**, **Leads**, **Deals**, and **Tasks**.
+- Interactive sortable column headers with direction indicators (`▲` / `▼`).
+- Entity-appropriate filter toolbars (Tags, Status, Stage, Source, Company, Priority, Overdue status).
+- **URL Query Parameter State Preservation**: Filters and page settings mirror URL parameters (`?page=1&pageSize=10&status=QUALIFIED&sortBy=value`) for bookmarking and page refreshes.
+- Efficient PostgreSQL `skip`, `take`, and `count` queries preventing unnecessary record loads into client memory.
+
 ### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
 - Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
 - One-click executive sample report generator with print/export capabilities.
