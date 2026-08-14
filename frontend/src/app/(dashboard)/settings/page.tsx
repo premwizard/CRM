@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { PageHeader } from "@/components/ui/page-header";
-import { Settings, User, CheckCircle, AlertCircle } from "lucide-react";
+import { Settings, User, CheckCircle, AlertCircle, Users } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
@@ -60,6 +61,24 @@ export default function SettingsPage() {
         description="Manage your account profile, preferences, and organization settings."
         icon={Settings}
       />
+
+      {/* Settings Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <Link
+          href="/settings"
+          className="px-4 py-2 text-xs font-semibold rounded-md bg-primary text-primary-foreground shadow-xs flex items-center gap-1.5"
+        >
+          <User className="w-3.5 h-3.5" />
+          Profile Settings
+        </Link>
+        <Link
+          href="/settings/team"
+          className="px-4 py-2 text-xs font-semibold rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center gap-1.5"
+        >
+          <Users className="w-3.5 h-3.5" />
+          Team Management
+        </Link>
+      </div>
 
       {status && (
         <div

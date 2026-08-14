@@ -17,6 +17,8 @@ enum Role {
 enum MemberRole {
   OWNER
   ADMIN
+  MANAGER
+  SALES_REP
   MEMBER
   VIEWER
 }
@@ -399,4 +401,20 @@ model Segment {
 
   @@index([entityType])
   @@index([name])
+}
+
+model TeamInvitation {
+  id             String     @id @default(uuid())
+  email          String
+  role           MemberRole @default(SALES_REP)
+  token          String     @unique
+  organizationId String?
+  invitedBy      String?
+  status         String     @default("PENDING")
+  expiresAt      DateTime
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([email])
+  @@index([token])
 }
