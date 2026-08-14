@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { LeadStatus, DealStage, ForecastCategory, ActivityType } from "@prisma/client";
+import { requireWritePermission, requireDeletePermission, normalizeRole } from "../middleware/rbac";
 
 const router = Router();
 
@@ -39,7 +40,7 @@ const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
 // ==========================================
 // POST /api/v1/bulk/contacts
 // ==========================================
-router.post("/contacts", async (req, res) => {
+router.post("/contacts", requireWritePermission, async (req, res) => {
   try {
     const { action, ids, data } = req.body;
 
@@ -188,7 +189,7 @@ router.post("/contacts", async (req, res) => {
 // ==========================================
 // POST /api/v1/bulk/leads
 // ==========================================
-router.post("/leads", async (req, res) => {
+router.post("/leads", requireWritePermission, async (req, res) => {
   try {
     const { action, ids, data } = req.body;
 
@@ -337,7 +338,7 @@ router.post("/leads", async (req, res) => {
 // ==========================================
 // POST /api/v1/bulk/deals
 // ==========================================
-router.post("/deals", async (req, res) => {
+router.post("/deals", requireWritePermission, async (req, res) => {
   try {
     const { action, ids, data } = req.body;
 

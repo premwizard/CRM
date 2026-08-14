@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../config/db";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/companies
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
     const company = await db.company.create({ data: req.body });
     return res.status(201).json({ success: true, data: { company } });
@@ -43,8 +44,9 @@ router.post("/", async (req, res) => {
 // GET /api/v1/companies/:id
 router.get("/:id", async (req, res) => {
   try {
+    const companyId = String(req.params.id);
     const company = await db.company.findUnique({
-      where: { id: req.params.id },
+      where: { id: companyId },
       include: { contacts: true, deals: true },
     });
     if (!company)
@@ -60,10 +62,11 @@ router.get("/:id", async (req, res) => {
 });
 
 // PUT /api/v1/companies/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const companyId = String(req.params.id);
     const company = await db.company.update({
-      where: { id: req.params.id },
+      where: { id: companyId },
       data: req.body,
     });
     return res.json({ success: true, data: { company } });
@@ -75,9 +78,10 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/v1/companies/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.company.delete({ where: { id: req.params.id } });
+    const companyId = String(req.params.id);
+    await db.company.delete({ where: { id: companyId } });
     return res.json({ success: true, message: "Company deleted" });
   } catch (err) {
     return res

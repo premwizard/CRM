@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { ActivityType, ActivityOutcome, TaskPriority, TaskStatus } from "@prisma/client";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/activities
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
     const {
       followUpDate,
@@ -123,9 +124,10 @@ router.post("/", async (req, res) => {
 });
 
 // DELETE /api/v1/activities/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.activity.delete({ where: { id: req.params.id } });
+    const activityId = String(req.params.id);
+    await db.activity.delete({ where: { id: activityId } });
     return res.json({ success: true, message: "Activity deleted" });
   } catch (err) {
     return res

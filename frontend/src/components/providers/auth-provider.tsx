@@ -14,6 +14,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  isViewer: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
+  canManageTeam: boolean;
   login: (
     email: string,
     password: string,
@@ -130,9 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("ic_crm_user", JSON.stringify(updatedUser));
   };
 
+  const userRole = (user?.role || "").toUpperCase();
+  const isViewer = userRole === "VIEWER";
+  const canWrite = userRole !== "VIEWER";
+  const canDelete = ["ADMIN", "SUPER_ADMIN", "OWNER", "MANAGER"].includes(userRole);
+  const canManageTeam = ["ADMIN", "SUPER_ADMIN", "OWNER"].includes(userRole);
+
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, updateUser }}
+      value={{
+        user,
+        token,
+        loading,
+        isViewer,
+        canWrite,
+        canDelete,
+        canManageTeam,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

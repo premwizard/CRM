@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../config/db";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -51,7 +52,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/tasks
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
     const { dueDate, ...restData } = req.body;
     const task = await db.task.create({
@@ -68,11 +69,12 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/v1/tasks/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const taskId = String(req.params.id);
     const { dueDate, ...restData } = req.body;
     const task = await db.task.update({
-      where: { id: req.params.id },
+      where: { id: taskId },
       data: {
         ...restData,
         dueDate: dueDate ? new Date(dueDate) : null,
@@ -86,9 +88,10 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/v1/tasks/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.task.delete({ where: { id: req.params.id } });
+    const taskId = String(req.params.id);
+    await db.task.delete({ where: { id: taskId } });
     return res.json({ success: true, message: "Task deleted" });
   } catch (err) {
     return res.status(500).json({ success: false, error: "Failed to delete task" });

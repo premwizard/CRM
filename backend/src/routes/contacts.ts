@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../config/db";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/contacts
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
     const contact = await db.contact.create({ data: req.body });
     return res.status(201).json({ success: true, data: { contact } });
@@ -42,10 +43,11 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/v1/contacts/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const contactId = String(req.params.id);
     const contact = await db.contact.update({
-      where: { id: req.params.id },
+      where: { id: contactId },
       data: req.body,
     });
     return res.json({ success: true, data: { contact } });
@@ -57,9 +59,10 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/v1/contacts/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.contact.delete({ where: { id: req.params.id } });
+    const contactId = String(req.params.id);
+    await db.contact.delete({ where: { id: contactId } });
     return res.json({ success: true, message: "Contact deleted" });
   } catch (err) {
     return res

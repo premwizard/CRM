@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { LeadStatus, DealStage } from "@prisma/client";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -47,8 +48,9 @@ router.get("/", async (req, res) => {
 // GET /api/v1/leads/:id
 router.get("/:id", async (req, res) => {
   try {
+    const leadId = String(req.params.id);
     const lead = await db.lead.findUnique({
-      where: { id: req.params.id },
+      where: { id: leadId },
       include: {
         convertedCompany: true,
         convertedContact: true,
@@ -70,10 +72,51 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/v1/leads/:id/convert
-router.post("/:id/convert", async (req, res) => {
+// POST /api/v1/leads
+router.post("/", requireWritePermission, async (req, res) => {
   try {
-    const { id } = req.params;
+    const lead = await db.lead.create({ data: req.body });
+    return res.status(201).json({ success: true, data: { lead } });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Failed to create lead" });
+  }
+});
+
+// PUT /api/v1/leads/:id
+router.put("/:id", requireWritePermission, async (req, res) => {
+  try {
+    const leadId = String(req.params.id);
+    const lead = await db.lead.update({
+      where: { id: leadId },
+      data: req.body,
+    });
+    return res.json({ success: true, data: { lead } });
+  } catch (err) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Failed to update lead" });
+  }
+});
+
+// DELETE /api/v1/leads/:id
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
+  try {
+    const leadId = String(req.params.id);
+    await db.lead.delete({ where: { id: leadId } });
+    return res.json({ success: true, message: "Lead deleted" });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to delete lead" });
+  }
+});
+
+// POST /api/v1/leads/:id/convert
+router.post("/:id/convert", requireWritePermission, async (req, res) => {
+  try {
+    const id = String(req.params.id);
     const body = req.body;
 
     const existingLead = await db.lead.findUnique({ where: { id } });

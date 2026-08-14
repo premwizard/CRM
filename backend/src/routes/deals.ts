@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { DealStage, ForecastCategory, ActivityType } from "@prisma/client";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -116,7 +117,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/deals
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
     const { expectedCloseDate, probability, forecastCategory, stage, ...restData } = req.body;
     const calcProb = probability ?? defaultProbabilityForStage(stage || DealStage.NEW);
@@ -143,9 +144,9 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/v1/deals/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireWritePermission, async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const existingDeal = await db.deal.findUnique({ where: { id } });
 
     if (!existingDeal) {
@@ -215,9 +216,10 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/v1/deals/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.deal.delete({ where: { id: req.params.id } });
+    const dealId = String(req.params.id);
+    await db.deal.delete({ where: { id: dealId } });
     return res.json({ success: true, message: "Deal deleted" });
   } catch (err) {
     return res.status(500).json({ success: false, error: "Failed to delete deal" });

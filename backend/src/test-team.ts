@@ -102,7 +102,8 @@ async function runTeamTests() {
     });
 
     // Simulate non-admin attempting authorization check
-    const isNonAdmin = newMemberUser.role !== Role.ADMIN && updatedMember.role !== MemberRole.OWNER && updatedMember.role !== MemberRole.ADMIN;
+    const currentMemberRole = String(updatedMember.role);
+    const isNonAdmin = newMemberUser.role !== Role.ADMIN && currentMemberRole !== "OWNER" && currentMemberRole !== "ADMIN";
     if (isNonAdmin) {
       console.log("✔ Authorization check verified: Non-admin user (SALES_REP / MANAGER) correctly identified as restricted from admin operations");
     }
