@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   Layers,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export const navItems = [
   { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Leads", href: "/leads", icon: Target },
   { name: "Deals", href: "/deals", icon: DollarSign },
+  { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Segments", href: "/segments", icon: Layers },
   { name: "Tasks", href: "/tasks", icon: CheckSquare },
   { name: "Activities", href: "/activities", icon: Activity },

@@ -102,6 +102,7 @@ model User {
   comments         Comment[]
   attachments      Attachment[]
   auditLogs        AuditLog[]
+  organizedMeetings Meeting[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -527,4 +528,43 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([action])
   @@index([createdAt])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Meeting {
+  id             String        @id @default(uuid())
+  organizationId String
+  title          String
+  description    String?
+  startTime      DateTime
+  endTime        DateTime
+  location       String?
+  meetingUrl     String?
+  organizerId    String
+  organizer      User          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  companyId      String?
+  contactId      String?
+  leadId         String?
+  dealId         String?
+  status         MeetingStatus @default(SCHEDULED)
+  outcome        String?
+  notes          String?
+  nextAction     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([organizerId])
+  @@index([startTime])
+  @@index([status])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([leadId])
+  @@index([dealId])
 }
