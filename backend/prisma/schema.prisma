@@ -568,3 +568,22 @@ model Meeting {
   @@index([leadId])
   @@index([dealId])
 }
+
+model CrmConfig {
+  id             String   @id @default(uuid())
+  organizationId String   @unique
+  companyName    String?
+  currency       String   @default("INR")
+  timezone       String   @default("Asia/Kolkata")
+  dateFormat     String   @default("DD/MM/YYYY")
+  leadStatuses   Json?
+  leadSources    Json?
+  dealStages     Json?
+  activityTypes  Json?
+  taskPriorities Json?
+  taskStatuses   Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
