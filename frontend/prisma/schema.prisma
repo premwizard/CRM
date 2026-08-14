@@ -161,6 +161,7 @@ model Contact {
   jobTitle       String?
   companyId      String?
   company        Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner          String?
   notes          String?
   deals          Deal[]
   activities     Activity[]
@@ -185,6 +186,7 @@ model Lead {
   source             LeadSource @default(WEBSITE)
   status             LeadStatus @default(NEW)
   value              Float      @default(0)
+  owner              String?
   notes              String?
   convertedAt        DateTime?
   convertedCompanyId String?

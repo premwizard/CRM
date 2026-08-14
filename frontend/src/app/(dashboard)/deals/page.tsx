@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DealKanbanBoard } from "@/components/deals/deal-kanban-board";
 import { SalesForecastAnalytics } from "@/components/deals/sales-forecast-analytics";
+import { BulkActionsBar } from "@/components/ui/bulk-actions-bar";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -30,6 +31,7 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
+  UserCheck,
 } from "lucide-react";
 
 const DEAL_STAGES = [
@@ -74,6 +76,7 @@ interface Deal {
 interface TagItem {
   id: string;
   name: string;
+  color?: string | null;
 }
 
 function DealsContent() {
@@ -89,6 +92,10 @@ function DealsContent() {
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const search = searchParams.get("search") || "";
   const selectedStage = searchParams.get("stage") || "";
@@ -108,7 +115,7 @@ function DealsContent() {
     hasNextPage: false,
   });
 
-  // Modal state
+  // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -116,14 +123,14 @@ function DealsContent() {
   // Form State
   const [formData, setFormData] = useState({
     name: "",
-    companyId: "",
-    contactId: "",
     value: 0,
     stage: "NEW",
     probability: 50,
     forecastCategory: "OPEN",
     owner: "",
     expectedCloseDate: "",
+    companyId: "",
+    contactId: "",
     notes: "",
   });
 
@@ -148,15 +155,14 @@ function DealsContent() {
     setLoading(true);
     try {
       const query = new URLSearchParams({
-        page: viewMode === "list" ? String(page) : "1",
-        pageSize: viewMode === "list" ? String(pageSize) : "100",
+        page: String(page),
+        pageSize: String(pageSize),
         sortBy,
         sortOrder,
       });
       if (search) query.set("search", search);
       if (selectedStage) query.set("stage", selectedStage);
-      if (selectedForecastCategory)
-        query.set("forecastCategory", selectedForecastCategory);
+      if (selectedForecastCategory) query.set("forecastCategory", selectedForecastCategory);
       if (selectedTagId) query.set("tagId", selectedTagId);
 
       const res = await fetch(`/api/v1/deals?${query.toString()}`);
@@ -173,7 +179,6 @@ function DealsContent() {
       setLoading(false);
     }
   }, [
-    viewMode,
     page,
     pageSize,
     sortBy,
@@ -186,18 +191,24 @@ function DealsContent() {
 
   const fetchCompaniesAndContacts = async () => {
     try {
-      const [compRes, contRes, tagRes] = await Promise.all([
+      const [compRes, contRes] = await Promise.all([
         fetch("/api/v1/companies?pageSize=100"),
         fetch("/api/v1/contacts?pageSize=100"),
-        fetch("/api/v1/tags"),
       ]);
       const compData = await compRes.json();
       const contData = await contRes.json();
-      const tagData = await tagRes.json();
-
       if (compData.success) setCompanies(compData.data.companies || []);
       if (contData.success) setContacts(contData.data.contacts || []);
-      if (tagData.success) setTags(tagData.data.tags || []);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const res = await fetch("/api/v1/tags");
+      const data = await res.json();
+      if (data.success) setTags(data.data.tags || []);
     } catch {
       // Fallback
     }
@@ -209,7 +220,52 @@ function DealsContent() {
 
   useEffect(() => {
     fetchCompaniesAndContacts();
+    fetchTags();
   }, []);
+
+  // Multi-Selection Logic
+  const allSelected =
+    deals.length > 0 && deals.every((d) => selectedIds.includes(d.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(deals.map((d) => d.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  // Bulk Actions Handler
+  const handleExecuteBulkAction = async (
+    action: string,
+    actionData?: Record<string, unknown>,
+  ) => {
+    if (selectedIds.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await fetch("/api/v1/bulk/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ids: selectedIds, data: actionData }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSelectedIds([]);
+        fetchDeals();
+        fetchTags();
+      }
+    } catch {
+      // Error handling
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const handleSort = (field: string) => {
     const isSameField = sortBy === field;
@@ -217,18 +273,18 @@ function DealsContent() {
     updateUrlParams({ sortBy: field, sortOrder: nextOrder, page: 1 });
   };
 
-  const handleOpenCreate = (stage: string = "NEW") => {
+  const handleOpenCreate = () => {
     setSelectedDeal(null);
     setFormData({
       name: "",
-      companyId: "",
-      contactId: "",
       value: 0,
-      stage,
+      stage: "NEW",
       probability: 50,
       forecastCategory: "OPEN",
       owner: "",
       expectedCloseDate: "",
+      companyId: "",
+      contactId: "",
       notes: "",
     });
     setIsModalOpen(true);
@@ -238,16 +294,16 @@ function DealsContent() {
     setSelectedDeal(deal);
     setFormData({
       name: deal.name,
-      companyId: deal.companyId || "",
-      contactId: deal.contactId || "",
-      value: deal.value,
+      value: deal.value || 0,
       stage: deal.stage,
       probability: deal.probability ?? 50,
       forecastCategory: deal.forecastCategory || "OPEN",
       owner: deal.owner || "",
       expectedCloseDate: deal.expectedCloseDate
-        ? new Date(deal.expectedCloseDate).toISOString().split("T")[0]
+        ? new Date(deal.expectedCloseDate).toISOString().slice(0, 10)
         : "",
+      companyId: deal.companyId || "",
+      contactId: deal.contactId || "",
       notes: "",
     });
     setIsModalOpen(true);
@@ -269,9 +325,11 @@ function DealsContent() {
         body: JSON.stringify({
           ...formData,
           value: Number(formData.value) || 0,
-          probability: Number(formData.probability) || 0,
+          probability: Number(formData.probability) || 50,
           companyId: formData.companyId || null,
           contactId: formData.contactId || null,
+          owner: formData.owner || null,
+          expectedCloseDate: formData.expectedCloseDate || null,
         }),
       });
 
@@ -305,36 +363,28 @@ function DealsContent() {
     }
   };
 
-  const totalPipelineValue = deals.reduce((acc, d) => acc + (d.value || 0), 0);
-  const totalWeightedValue = deals.reduce(
-    (acc, d) => acc + (d.value || 0) * ((d.probability ?? 50) / 100),
-    0,
-  );
-
   const getStageBadge = (stage: string) => {
     switch (stage) {
       case "NEW":
-        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "QUALIFIED":
-        return "bg-indigo-500/10 text-indigo-600 border-indigo-500/20";
+        return "bg-cyan-500/10 text-cyan-500 border-cyan-500/20";
       case "PROPOSAL":
-        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
       case "NEGOTIATION":
-        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+        return "bg-amber-500/10 text-amber-500 border-amber-500/20";
       case "WON":
-        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+        return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
       case "LOST":
-        return "bg-red-500/10 text-red-600 border-red-500/20";
+        return "bg-red-500/10 text-red-500 border-red-500/20";
       default:
-        return "bg-secondary text-secondary-foreground";
+        return "bg-secondary text-secondary-foreground border-border";
     }
   };
 
   const getSortIcon = (field: string) => {
     if (sortBy !== field)
-      return (
-        <ArrowUpDown className="w-3 h-3 text-muted-foreground opacity-50 ml-1 inline" />
-      );
+      return <ArrowUpDown className="w-3 h-3 text-muted-foreground opacity-50 ml-1 inline" />;
     return sortOrder === "asc" ? (
       <ArrowUp className="w-3 h-3 text-primary ml-1 inline" />
     ) : (
@@ -342,61 +392,68 @@ function DealsContent() {
     );
   };
 
+  const totalPipelineValue = deals.reduce((acc, d) => acc + (d.value || 0), 0);
+  const totalWeightedValue = deals.reduce((acc, d) => {
+    const prob = d.probability ?? 50;
+    return acc + (d.value || 0) * (prob / 100);
+  }, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       <PageHeader
-        title="Deals & Sales Pipeline Forecast"
-        description="Track revenue opportunities, probability-weighted pipeline, forecast categories, and Kanban board stages."
-        actionText="New Deal"
-        onAction={() => handleOpenCreate("NEW")}
+        title="Deals & Revenue Pipeline"
+        description="Monitor active sales opportunities, stage conversion velocity, and forecasted revenue."
+        actionText="Create Deal"
+        onAction={handleOpenCreate}
+        icon={DollarSign}
       />
 
-      {/* Control & Filter Bar */}
-      <div className="bg-card p-4 rounded-lg border border-border flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
-        <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-          {/* View Mode Toggle Switch */}
-          <div className="flex items-center bg-muted p-1 rounded-md border border-border">
-            <button
-              onClick={() => setViewMode("board")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                viewMode === "board"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              Board
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                viewMode === "list"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ListIcon className="w-3.5 h-3.5" />
-              List
-            </button>
-            <button
-              onClick={() => setViewMode("analytics")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                viewMode === "analytics"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
-              Forecast Matrix
-            </button>
-          </div>
+      {/* View Switcher Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-3 rounded-lg border border-border">
+        <div className="flex items-center gap-1 bg-secondary/60 p-1 rounded-md">
+          <button
+            onClick={() => setViewMode("board")}
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              viewMode === "board"
+                ? "bg-background text-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            Kanban Board
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              viewMode === "list"
+                ? "bg-background text-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListIcon className="w-3.5 h-3.5" />
+            Table View
+          </button>
+          <button
+            onClick={() => setViewMode("analytics")}
+            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              viewMode === "analytics"
+                ? "bg-background text-primary shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Forecast Analytics
+          </button>
+        </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        {/* Toolbar & Filter Panel */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search Box */}
+          <div className="relative min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search deals..."
+              placeholder="Search deals by name..."
               value={search}
               onChange={(e) => updateUrlParams({ search: e.target.value, page: 1 })}
               className="w-full pl-9 pr-4 py-2 text-xs bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -470,11 +527,19 @@ function DealsContent() {
         />
       ) : (
         /* Table View */
-        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
+        <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs relative">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-secondary/50 text-muted-foreground font-semibold border-b border-border uppercase text-[11px] tracking-wider">
                 <tr>
+                  <th className="px-4 py-3.5 w-10 text-center select-none">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                  </th>
                   <th
                     onClick={() => handleSort("name")}
                     className="px-6 py-3.5 cursor-pointer hover:bg-accent/50 select-none"
@@ -500,6 +565,7 @@ function DealsContent() {
                     Stage {getSortIcon("stage")}
                   </th>
                   <th className="px-6 py-3.5">Forecast Category</th>
+                  <th className="px-6 py-3.5">Owner</th>
                   <th className="px-6 py-3.5">Related Entity</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
@@ -508,7 +574,7 @@ function DealsContent() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-6 py-8 text-center text-muted-foreground animate-pulse"
                     >
                       Loading deals database...
@@ -517,7 +583,7 @@ function DealsContent() {
                 ) : deals.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-6 py-12 text-center text-muted-foreground space-y-1"
                     >
                       <DollarSign className="w-8 h-8 mx-auto text-muted-foreground opacity-30" />
@@ -531,13 +597,26 @@ function DealsContent() {
                   </tr>
                 ) : (
                   deals.map((deal) => {
+                    const isSelected = selectedIds.includes(deal.id);
                     const prob = deal.probability ?? 50;
                     const weighted = (deal.value || 0) * (prob / 100);
                     return (
                       <tr
                         key={deal.id}
-                        className="hover:bg-accent/40 transition-colors"
+                        className={`transition-colors ${
+                          isSelected
+                            ? "bg-primary/5 hover:bg-primary/10"
+                            : "hover:bg-accent/40"
+                        }`}
                       >
+                        <td className="px-4 py-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelect(deal.id)}
+                            className="w-4 h-4 rounded border-input text-primary focus:ring-primary cursor-pointer"
+                          />
+                        </td>
                         <td className="px-6 py-4 font-semibold text-foreground">
                           <Link
                             href={`/deals/${deal.id}`}
@@ -546,11 +625,6 @@ function DealsContent() {
                             <span>{deal.name}</span>
                             <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
                           </Link>
-                          {deal.owner && (
-                            <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                              Owner: {deal.owner}
-                            </p>
-                          )}
 
                           {/* Tag Pills */}
                           {deal.tags && deal.tags.length > 0 && (
@@ -589,6 +663,16 @@ function DealsContent() {
                             {deal.forecastCategory || "OPEN"}
                           </span>
                         </td>
+                        <td className="px-6 py-4 text-xs font-medium text-foreground">
+                          {deal.owner ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold text-[11px]">
+                              <UserCheck className="w-3 h-3 text-primary" />
+                              {deal.owner}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground font-normal">Unassigned</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-xs text-muted-foreground">
                           {deal.company ? (
                             <Link
@@ -607,7 +691,7 @@ function DealsContent() {
                               {deal.contact.firstName} {deal.contact.lastName}
                             </Link>
                           ) : (
-                            "—"
+                            "Unlinked"
                           )}
                         </td>
                         <td className="px-6 py-4 text-right space-x-1">
@@ -655,7 +739,17 @@ function DealsContent() {
         </div>
       )}
 
-      {/* Create / Edit Deal Modal */}
+      {/* Floating Bulk Actions Bar (Active when items selected in list view or board) */}
+      <BulkActionsBar
+        selectedCount={selectedIds.length}
+        entityType="deals"
+        tags={tags}
+        onClearSelection={() => setSelectedIds([])}
+        onExecuteAction={handleExecuteBulkAction}
+        loading={bulkLoading}
+      />
+
+      {/* Create / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -664,12 +758,11 @@ function DealsContent() {
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-              Deal Title / Name *
+              Deal Name / Title *
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Enterprise License Expansion"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
@@ -685,8 +778,8 @@ function DealsContent() {
               </label>
               <input
                 type="number"
-                min="0"
                 required
+                min="0"
                 value={formData.value}
                 onChange={(e) =>
                   setFormData({
@@ -694,13 +787,12 @@ function DealsContent() {
                     value: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary font-semibold"
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Pipeline Stage
+                Deal Stage
               </label>
               <select
                 value={formData.stage}
@@ -721,7 +813,7 @@ function DealsContent() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Win Probability (%)
+                Probability (%)
               </label>
               <input
                 type="number"
@@ -734,10 +826,9 @@ function DealsContent() {
                     probability: parseInt(e.target.value, 10) || 0,
                   })
                 }
-                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary font-semibold text-amber-600"
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                 Forecast Category
@@ -745,12 +836,9 @@ function DealsContent() {
               <select
                 value={formData.forecastCategory}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    forecastCategory: e.target.value,
-                  })
+                  setFormData({ ...formData, forecastCategory: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary font-semibold"
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {FORECAST_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -764,45 +852,18 @@ function DealsContent() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Company Account
+                Owner Name
               </label>
-              <select
-                value={formData.companyId}
+              <input
+                type="text"
+                placeholder="e.g. Rahul, Arun, Priya"
+                value={formData.owner}
                 onChange={(e) =>
-                  setFormData({ ...formData, companyId: e.target.value })
+                  setFormData({ ...formData, owner: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">-- Select Company --</option>
-                {companies.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Primary Contact
-              </label>
-              <select
-                value={formData.contactId}
-                onChange={(e) =>
-                  setFormData({ ...formData, contactId: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">-- Select Contact --</option>
-                {contacts.map((cont) => (
-                  <option key={cont.id} value={cont.id}>
-                    {cont.firstName} {cont.lastName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
                 Expected Close Date
@@ -811,28 +872,66 @@ function DealsContent() {
                 type="date"
                 value={formData.expectedCloseDate}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    expectedCloseDate: e.target.value,
-                  })
+                  setFormData({ ...formData, expectedCloseDate: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                Related Company
+              </label>
+              <select
+                value={formData.companyId}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyId: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">-- None --</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
-                Deal Owner
+                Related Contact
               </label>
-              <input
-                type="text"
-                placeholder="e.g. Prem"
-                value={formData.owner}
+              <select
+                value={formData.contactId}
                 onChange={(e) =>
-                  setFormData({ ...formData, owner: e.target.value })
+                  setFormData({ ...formData, contactId: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              >
+                <option value="">-- None --</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Notes
+            </label>
+            <textarea
+              rows={3}
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border">

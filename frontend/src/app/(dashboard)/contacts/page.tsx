@@ -6,6 +6,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { BulkActionsBar } from "@/components/ui/bulk-actions-bar";
+import { exportToCsv } from "@/lib/export-utils";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -23,6 +25,7 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
+  UserCheck,
 } from "lucide-react";
 
 interface CompanyOption {
@@ -39,6 +42,7 @@ interface Contact {
   jobTitle?: string | null;
   companyId?: string | null;
   company?: { id: string; name: string } | null;
+  owner?: string | null;
   notes?: string | null;
   tags?: { tag: { id: string; name: string; color?: string | null } }[];
   createdAt: string;
@@ -47,6 +51,7 @@ interface Contact {
 interface TagItem {
   id: string;
   name: string;
+  color?: string | null;
 }
 
 function ContactsContent() {
@@ -58,6 +63,10 @@ function ContactsContent() {
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const search = searchParams.get("search") || "";
   const selectedCompanyId = searchParams.get("companyId") || "";
@@ -89,6 +98,7 @@ function ContactsContent() {
     phone: "",
     jobTitle: "",
     companyId: "",
+    owner: "",
     notes: "",
   });
 
@@ -170,6 +180,74 @@ function ContactsContent() {
     fetchTags();
   }, []);
 
+  // Multi-Selection Logic
+  const allSelected =
+    contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(contacts.map((c) => c.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  // Bulk Actions Handler
+  const handleExecuteBulkAction = async (
+    action: string,
+    actionData?: Record<string, unknown>,
+  ) => {
+    if (selectedIds.length === 0) return;
+    setBulkLoading(true);
+    try {
+      if (action === "export") {
+        const res = await fetch("/api/v1/bulk/contacts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "export", ids: selectedIds }),
+        });
+        const data = await res.json();
+        if (data.success && data.data?.contacts) {
+          const exportRows = data.data.contacts.map((c: Contact) => ({
+            ID: c.id,
+            "First Name": c.firstName,
+            "Last Name": c.lastName,
+            Email: c.email,
+            Phone: c.phone || "",
+            "Job Title": c.jobTitle || "",
+            Company: c.company?.name || "",
+            Owner: c.owner || "",
+            Tags: c.tags?.map((t) => t.tag.name).join("; ") || "",
+            "Created At": c.createdAt,
+          }));
+          exportToCsv(`contacts_export_${new Date().toISOString().slice(0, 10)}.csv`, exportRows);
+        }
+      } else {
+        const res = await fetch("/api/v1/bulk/contacts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, ids: selectedIds, data: actionData }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setSelectedIds([]);
+          fetchContacts();
+          fetchTags();
+        }
+      }
+    } catch {
+      // Error handling
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const handleSort = (field: string) => {
     const isSameField = sortBy === field;
     const nextOrder = isSameField && sortOrder === "asc" ? "desc" : "asc";
@@ -185,6 +263,7 @@ function ContactsContent() {
       phone: "",
       jobTitle: "",
       companyId: "",
+      owner: "",
       notes: "",
     });
     setIsModalOpen(true);
@@ -199,6 +278,7 @@ function ContactsContent() {
       phone: contact.phone || "",
       jobTitle: contact.jobTitle || "",
       companyId: contact.companyId || "",
+      owner: contact.owner || "",
       notes: contact.notes || "",
     });
     setIsModalOpen(true);
@@ -220,6 +300,7 @@ function ContactsContent() {
         body: JSON.stringify({
           ...formData,
           companyId: formData.companyId || null,
+          owner: formData.owner || null,
         }),
       });
 
@@ -264,7 +345,7 @@ function ContactsContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       <PageHeader
         title="Contacts Directory"
         description="Manage customer profiles, direct contacts, and company relationships."
@@ -303,7 +384,7 @@ function ContactsContent() {
           </select>
         </div>
 
-        {/* Secondary Filter Row: Tag Filter */}
+        {/* Tag Filter */}
         {tags.length > 0 && (
           <div className="flex items-center gap-2 pt-1 border-t border-border/50 text-xs">
             <Filter className="w-3.5 h-3.5 text-muted-foreground" />
@@ -325,11 +406,19 @@ function ContactsContent() {
       </div>
 
       {/* Contacts Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs">
+      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-xs relative">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-secondary/50 text-muted-foreground font-semibold border-b border-border uppercase text-[11px] tracking-wider">
               <tr>
+                <th className="px-4 py-3.5 w-10 text-center select-none">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                  />
+                </th>
                 <th
                   onClick={() => handleSort("firstName")}
                   className="px-6 py-3.5 cursor-pointer hover:bg-accent/50 select-none"
@@ -344,6 +433,7 @@ function ContactsContent() {
                 </th>
                 <th className="px-6 py-3.5">Job Title</th>
                 <th className="px-6 py-3.5">Company</th>
+                <th className="px-6 py-3.5">Owner</th>
                 <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
@@ -351,7 +441,7 @@ function ContactsContent() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-muted-foreground animate-pulse"
                   >
                     Loading contacts database...
@@ -360,7 +450,7 @@ function ContactsContent() {
               ) : contacts.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={7}
                     className="px-6 py-12 text-center text-muted-foreground space-y-1"
                   >
                     <Users className="w-8 h-8 mx-auto text-muted-foreground opacity-30" />
@@ -373,101 +463,126 @@ function ContactsContent() {
                   </td>
                 </tr>
               ) : (
-                contacts.map((contact) => (
-                  <tr
-                    key={contact.id}
-                    className="hover:bg-accent/40 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-semibold text-foreground">
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        className="hover:text-primary transition-colors flex items-center gap-1.5 group"
-                      >
-                        <span>
-                          {contact.firstName} {contact.lastName}
-                        </span>
-                        <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
-                      </Link>
+                contacts.map((contact) => {
+                  const isSelected = selectedIds.includes(contact.id);
+                  return (
+                    <tr
+                      key={contact.id}
+                      className={`transition-colors ${
+                        isSelected
+                          ? "bg-primary/5 hover:bg-primary/10"
+                          : "hover:bg-accent/40"
+                      }`}
+                    >
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(contact.id)}
+                          className="w-4 h-4 rounded border-input text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-foreground">
+                        <Link
+                          href={`/contacts/${contact.id}`}
+                          className="hover:text-primary transition-colors flex items-center gap-1.5 group"
+                        >
+                          <span>
+                            {contact.firstName} {contact.lastName}
+                          </span>
+                          <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                        </Link>
 
-                      {/* Tag Pills */}
-                      {contact.tags && contact.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {contact.tags.map((t) => (
-                            <span
-                              key={t.tag.id}
-                              style={{
-                                backgroundColor: `${t.tag.color || "#3B82F6"}15`,
-                                color: t.tag.color || "#3B82F6",
-                                borderColor: `${t.tag.color || "#3B82F6"}30`,
-                              }}
-                              className="px-2 py-0.5 text-[10px] font-bold border rounded-full"
-                            >
-                              {t.tag.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-normal text-muted-foreground">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-foreground font-medium">
-                          <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span>{contact.email}</span>
-                        </div>
-                        {contact.phone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                            <span>{contact.phone}</span>
+                        {/* Tag Pills */}
+                        {contact.tags && contact.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {contact.tags.map((t) => (
+                              <span
+                                key={t.tag.id}
+                                style={{
+                                  backgroundColor: `${t.tag.color || "#3B82F6"}15`,
+                                  color: t.tag.color || "#3B82F6",
+                                  borderColor: `${t.tag.color || "#3B82F6"}30`,
+                                }}
+                                className="px-2 py-0.5 text-[10px] font-bold border rounded-full"
+                              >
+                                {t.tag.name}
+                              </span>
+                            ))}
                           </div>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-foreground">
-                      {contact.jobTitle || "—"}
-                    </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-foreground">
-                      {contact.company ? (
+                      </td>
+                      <td className="px-6 py-4 text-xs font-normal text-muted-foreground">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-foreground font-medium">
+                            <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span>{contact.email}</span>
+                          </div>
+                          {contact.phone && (
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span>{contact.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-foreground">
+                        {contact.jobTitle || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-xs font-semibold text-foreground">
+                        {contact.company ? (
+                          <Link
+                            href={`/companies/${contact.company.id}`}
+                            className="inline-flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            {contact.company.name}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground font-normal">
+                            Unassigned
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-foreground">
+                        {contact.owner ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground font-semibold text-[11px]">
+                            <UserCheck className="w-3 h-3 text-primary" />
+                            {contact.owner}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground font-normal">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-1">
                         <Link
-                          href={`/companies/${contact.company.id}`}
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          href={`/contacts/${contact.id}`}
+                          className="p-1.5 inline-block rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          title="View Details"
                         >
-                          <Building2 className="w-3.5 h-3.5" />
-                          {contact.company.name}
+                          <Eye className="w-4 h-4" />
                         </Link>
-                      ) : (
-                        <span className="text-muted-foreground font-normal">
-                          Unassigned
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-1">
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        className="p-1.5 inline-block rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleOpenEdit(contact)}
-                        className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                        title="Edit Contact"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedContact(contact);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                        title="Delete Contact"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        <button
+                          onClick={() => handleOpenEdit(contact)}
+                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+                          title="Edit Contact"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-md hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                          title="Delete Contact"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -482,6 +597,16 @@ function ContactsContent() {
           }
         />
       </div>
+
+      {/* Floating Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={selectedIds.length}
+        entityType="contacts"
+        tags={tags}
+        onClearSelection={() => setSelectedIds([])}
+        onExecuteAction={handleExecuteBulkAction}
+        loading={bulkLoading}
+      />
 
       {/* Create / Edit Modal */}
       <Modal
@@ -584,6 +709,21 @@ function ContactsContent() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+              Owner Name
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Rahul, Arun, Priya"
+              value={formData.owner}
+              onChange={(e) =>
+                setFormData({ ...formData, owner: e.target.value })
+              }
+              className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
 
           <div>
