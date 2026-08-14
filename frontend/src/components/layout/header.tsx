@@ -4,7 +4,8 @@ import React from "react";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { useAuth } from "@/components/providers/auth-provider";
 import { GlobalSearch } from "@/components/search/global-search";
-import { Bell, User, LogOut } from "lucide-react";
+import { NotificationBell } from "@/components/layout/notification-bell";
+import { User, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Header() {
@@ -23,13 +24,7 @@ export function Header() {
 
       {/* Header Actions */}
       <div className="flex items-center gap-3">
-        <button
-          className="p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors relative"
-          title="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="w-2 h-2 rounded-full bg-primary absolute top-2 right-2 ring-2 ring-card" />
-        </button>
+        <NotificationBell />
 
         <ThemeToggle />
 

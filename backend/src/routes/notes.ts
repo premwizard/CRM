@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { db } from "../config/db";
-import { ActivityType } from "@prisma/client";
+import { ActivityType, NotificationType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
+import { createNotification, resolveUserId } from "../services/notifications";
 
 const router = Router();
 
@@ -61,6 +62,23 @@ router.post("/", requireWritePermission, async (req, res) => {
           organizationId: tenantId,
         },
       });
+
+      // Check for mentions (e.g. mentionUser field or @mention pattern in content)
+      const mentionTarget = req.body.mentionUser || (req.body.content.match(/@(\w+)/)?.[1]);
+      if (mentionTarget) {
+        const recipientUserId = await resolveUserId(mentionTarget, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.COMMENT_MENTION,
+            title: "You were mentioned in a comment",
+            message: `${req.body.createdBy || "A team member"} mentioned you: "${summaryTitle}"`,
+            entityType: "NOTE",
+            entityId: note.id,
+          });
+        }
+      }
     } catch {
       // Ignore background timeline log errors
     }

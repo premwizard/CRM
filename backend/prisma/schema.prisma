@@ -436,3 +436,35 @@ model TeamInvitation {
   @@index([email])
   @@index([token])
 }
+
+enum NotificationType {
+  LEAD_ASSIGNED
+  DEAL_ASSIGNED
+  TASK_ASSIGNED
+  TASK_DUE
+  DEAL_STAGE_CHANGED
+  DEAL_WON
+  DEAL_LOST
+  COMMENT_MENTION
+  GENERAL
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  organizationId String
+  recipientUserId String
+  type           NotificationType @default(GENERAL)
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId])
+  @@index([recipientUserId])
+  @@index([isRead])
+  @@index([createdAt])
+}

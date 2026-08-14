@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { db } from "../config/db";
-import { LeadStatus, DealStage } from "@prisma/client";
+import { LeadStatus, DealStage, NotificationType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
+import { createNotification, resolveUserId } from "../services/notifications";
 
 const router = Router();
 
@@ -84,6 +85,26 @@ router.post("/", requireWritePermission, async (req, res) => {
         organizationId: tenantId,
       },
     });
+
+    if (lead.owner) {
+      try {
+        const recipientUserId = await resolveUserId(lead.owner, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.LEAD_ASSIGNED,
+            title: "New lead assigned to you",
+            message: `${lead.name}${lead.company ? ` (${lead.company})` : ""} was assigned to you`,
+            entityType: "LEAD",
+            entityId: lead.id,
+          });
+        }
+      } catch {
+        // Ignore background notification failure
+      }
+    }
+
     return res.status(201).json({ success: true, data: { lead } });
   } catch (err) {
     return res
@@ -109,6 +130,26 @@ router.put("/:id", requireWritePermission, async (req, res) => {
       where: { id: leadId },
       data: req.body,
     });
+
+    if (lead.owner && lead.owner !== existing.owner) {
+      try {
+        const recipientUserId = await resolveUserId(lead.owner, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.LEAD_ASSIGNED,
+            title: "New lead assigned to you",
+            message: `${lead.name}${lead.company ? ` (${lead.company})` : ""} was assigned to you`,
+            entityType: "LEAD",
+            entityId: lead.id,
+          });
+        }
+      } catch {
+        // Ignore background notification failure
+      }
+    }
+
     return res.json({ success: true, data: { lead } });
   } catch (err) {
     return res

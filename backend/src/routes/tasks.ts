@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { db } from "../config/db";
+import { NotificationType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
+import { createNotification, resolveUserId } from "../services/notifications";
 
 const router = Router();
 
@@ -64,6 +66,26 @@ router.post("/", requireWritePermission, async (req, res) => {
       },
       include: includeRelations,
     });
+
+    if (task.assignedTo) {
+      try {
+        const recipientUserId = await resolveUserId(task.assignedTo, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.TASK_ASSIGNED,
+            title: "New task assigned to you",
+            message: `${task.title}`,
+            entityType: "TASK",
+            entityId: task.id,
+          });
+        }
+      } catch {
+        // Ignore background errors
+      }
+    }
+
     return res.status(201).json({ success: true, data: { task } });
   } catch (err) {
     return res.status(400).json({ success: false, error: "Failed to create task" });
@@ -92,6 +114,26 @@ router.put("/:id", requireWritePermission, async (req, res) => {
       },
       include: includeRelations,
     });
+
+    if (task.assignedTo && task.assignedTo !== existing.assignedTo) {
+      try {
+        const recipientUserId = await resolveUserId(task.assignedTo, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.TASK_ASSIGNED,
+            title: "New task assigned to you",
+            message: `${task.title}`,
+            entityType: "TASK",
+            entityId: task.id,
+          });
+        }
+      } catch {
+        // Ignore background errors
+      }
+    }
+
     return res.json({ success: true, data: { task } });
   } catch (err) {
     return res.status(400).json({ success: false, error: "Failed to update task" });

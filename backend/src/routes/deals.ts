@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { db } from "../config/db";
-import { DealStage, ForecastCategory, ActivityType } from "@prisma/client";
+import { DealStage, ForecastCategory, ActivityType, NotificationType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
+import { createNotification, resolveUserId } from "../services/notifications";
 
 const router = Router();
 
@@ -141,6 +142,25 @@ router.post("/", requireWritePermission, async (req, res) => {
       },
     });
 
+    if (deal.owner) {
+      try {
+        const recipientUserId = await resolveUserId(deal.owner, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.DEAL_ASSIGNED,
+            title: "New deal assigned to you",
+            message: `${deal.name} was assigned to you`,
+            entityType: "DEAL",
+            entityId: deal.id,
+          });
+        }
+      } catch {
+        // Ignore background errors
+      }
+    }
+
     return res.status(201).json({ success: true, data: { deal } });
   } catch (err) {
     return res.status(400).json({ success: false, error: "Failed to create deal" });
@@ -212,6 +232,55 @@ router.put("/:id", requireWritePermission, async (req, res) => {
             organizationId: tenantId,
           },
         });
+
+        // Trigger Notification for Stage Change / Won / Lost
+        if (deal.owner) {
+          const recipientUserId = await resolveUserId(deal.owner, tenantId);
+          if (recipientUserId) {
+            let notifType: NotificationType = NotificationType.DEAL_STAGE_CHANGED;
+            let title = `Deal moved to ${stage}`;
+            let message = `${deal.name} moved from ${existingDeal.stage} to ${stage}`;
+
+            if (stage === DealStage.WON) {
+              notifType = NotificationType.DEAL_WON;
+              title = "Deal Won!";
+              message = `${deal.name} was marked as Won ($${deal.value})`;
+            } else if (stage === DealStage.LOST) {
+              notifType = NotificationType.DEAL_LOST;
+              title = "Deal Lost";
+              message = `${deal.name} was marked as Lost`;
+            }
+
+            await createNotification({
+              organizationId: tenantId,
+              recipientUserId,
+              type: notifType,
+              title,
+              message,
+              entityType: "DEAL",
+              entityId: deal.id,
+            });
+          }
+        }
+      } catch {
+        // Ignore background errors
+      }
+    }
+
+    if (deal.owner && deal.owner !== existingDeal.owner) {
+      try {
+        const recipientUserId = await resolveUserId(deal.owner, tenantId);
+        if (recipientUserId) {
+          await createNotification({
+            organizationId: tenantId,
+            recipientUserId,
+            type: NotificationType.DEAL_ASSIGNED,
+            title: "New deal assigned to you",
+            message: `${deal.name} was assigned to you`,
+            entityType: "DEAL",
+            entityId: deal.id,
+          });
+        }
       } catch {
         // Ignore background errors
       }

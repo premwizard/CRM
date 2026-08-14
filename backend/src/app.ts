@@ -15,6 +15,7 @@ import searchRoutes from "./routes/search";
 import bulkRoutes from "./routes/bulk";
 import importExportRoutes from "./routes/importExport";
 import teamRoutes from "./routes/team";
+import notificationRoutes from "./routes/notifications";
 import { db } from "./config/db";
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use("/api/v1/segments", segmentRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/bulk", bulkRoutes);
 app.use("/api/v1/team", teamRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1", importExportRoutes);
 
 // GET /api/v1/health
