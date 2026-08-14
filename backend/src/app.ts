@@ -13,6 +13,7 @@ import tagRoutes from "./routes/tags";
 import segmentRoutes from "./routes/segments";
 import searchRoutes from "./routes/search";
 import bulkRoutes from "./routes/bulk";
+import importExportRoutes from "./routes/importExport";
 import { db } from "./config/db";
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api/v1/tags", tagRoutes);
 app.use("/api/v1/segments", segmentRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/bulk", bulkRoutes);
+app.use("/api/v1", importExportRoutes);
 
 // GET /api/v1/health
 app.get("/api/v1/health", (req, res) => {

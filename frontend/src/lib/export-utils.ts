@@ -29,3 +29,22 @@ export function exportToCsv(filename: string, rows: Record<string, unknown>[]) {
   link.click();
   document.body.removeChild(link);
 }
+
+export async function downloadFilteredExport(entity: string, searchParamsString: string) {
+  try {
+    const res = await fetch(`/api/v1/export/${entity}?${searchParamsString}`);
+    const data = await res.json();
+    if (data.success && data.data?.csvContent) {
+      const blob = new Blob([data.data.csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = data.data.filename || `${entity}_export.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } catch (err) {
+    console.error("Export download failed:", err);
+  }
+}

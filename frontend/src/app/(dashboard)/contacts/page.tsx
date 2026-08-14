@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { BulkActionsBar } from "@/components/ui/bulk-actions-bar";
-import { exportToCsv } from "@/lib/export-utils";
+import { CsvImportModal } from "@/components/ui/csv-import-modal";
+import { exportToCsv, downloadFilteredExport } from "@/lib/export-utils";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -26,6 +27,8 @@ import {
   ArrowDown,
   Filter,
   UserCheck,
+  Upload,
+  Download,
 } from "lucide-react";
 
 interface CompanyOption {
@@ -88,6 +91,7 @@ function ContactsContent() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   // Form State
@@ -346,13 +350,31 @@ function ContactsContent() {
 
   return (
     <div className="space-y-6 pb-16">
-      <PageHeader
-        title="Contacts Directory"
-        description="Manage customer profiles, direct contacts, and company relationships."
-        actionText="Add Contact"
-        onAction={handleOpenCreate}
-        icon={Users}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeader
+          title="Contacts Directory"
+          description="Manage customer profiles, direct contacts, and company relationships."
+          actionText="Add Contact"
+          onAction={handleOpenCreate}
+          icon={Users}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Upload className="w-3.5 h-3.5 text-primary" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => downloadFilteredExport("contacts", searchParams.toString())}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-500" />
+            Export CSV
+          </button>
+        </div>
+      </div>
 
       {/* Toolbar & Filter Panel */}
       <div className="bg-card p-4 rounded-lg border border-border space-y-3">
@@ -767,6 +789,14 @@ function ContactsContent() {
         title="Delete Contact"
         message={`Are you sure you want to delete contact "${selectedContact?.firstName} ${selectedContact?.lastName}"?`}
         loading={saving}
+      />
+
+      {/* CSV Import Modal */}
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entity="contacts"
+        onSuccess={fetchContacts}
       />
     </div>
   );

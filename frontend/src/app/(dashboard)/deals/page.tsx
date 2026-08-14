@@ -9,6 +9,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DealKanbanBoard } from "@/components/deals/deal-kanban-board";
 import { SalesForecastAnalytics } from "@/components/deals/sales-forecast-analytics";
 import { BulkActionsBar } from "@/components/ui/bulk-actions-bar";
+import { downloadFilteredExport } from "@/lib/export-utils";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -32,6 +33,7 @@ import {
   ArrowDown,
   Filter,
   UserCheck,
+  Download,
 } from "lucide-react";
 
 const DEAL_STAGES = [
@@ -400,13 +402,22 @@ function DealsContent() {
 
   return (
     <div className="space-y-6 pb-16">
-      <PageHeader
-        title="Deals & Revenue Pipeline"
-        description="Monitor active sales opportunities, stage conversion velocity, and forecasted revenue."
-        actionText="Create Deal"
-        onAction={handleOpenCreate}
-        icon={DollarSign}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeader
+          title="Deals & Revenue Pipeline"
+          description="Monitor active sales opportunities, stage conversion velocity, and forecasted revenue."
+          actionText="Create Deal"
+          onAction={handleOpenCreate}
+          icon={DollarSign}
+        />
+        <button
+          onClick={() => downloadFilteredExport("deals", searchParams.toString())}
+          className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+        >
+          <Download className="w-3.5 h-3.5 text-emerald-500" />
+          Export CSV
+        </button>
+      </div>
 
       {/* View Switcher Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-3 rounded-lg border border-border">

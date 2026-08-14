@@ -6,6 +6,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { CsvImportModal } from "@/components/ui/csv-import-modal";
+import { downloadFilteredExport } from "@/lib/export-utils";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -23,6 +25,8 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
+  Upload,
+  Download,
 } from "lucide-react";
 
 interface Company {
@@ -73,6 +77,7 @@ function CompaniesContent() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   // Form State
@@ -243,13 +248,31 @@ function CompaniesContent() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Companies Directory"
-        description="Manage corporate accounts, industry classification, and client organizations."
-        actionText="Add Company"
-        onAction={handleOpenCreate}
-        icon={Building2}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeader
+          title="Companies Directory"
+          description="Manage corporate accounts, industry classification, and client organizations."
+          actionText="Add Company"
+          onAction={handleOpenCreate}
+          icon={Building2}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Upload className="w-3.5 h-3.5 text-primary" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => downloadFilteredExport("companies", searchParams.toString())}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-500" />
+            Export CSV
+          </button>
+        </div>
+      </div>
 
       {/* Toolbar & Filter Panel */}
       <div className="bg-card p-4 rounded-lg border border-border space-y-3">
@@ -598,6 +621,14 @@ function CompaniesContent() {
         title="Delete Company"
         message={`Are you sure you want to delete "${selectedCompany?.name}"?`}
         loading={saving}
+      />
+
+      {/* CSV Import Modal */}
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entity="companies"
+        onSuccess={fetchCompanies}
       />
     </div>
   );

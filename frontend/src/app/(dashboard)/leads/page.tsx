@@ -8,7 +8,8 @@ import { Modal } from "@/components/ui/modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { LeadConvertModal } from "@/components/leads/lead-convert-modal";
 import { BulkActionsBar } from "@/components/ui/bulk-actions-bar";
-import { exportToCsv } from "@/lib/export-utils";
+import { CsvImportModal } from "@/components/ui/csv-import-modal";
+import { exportToCsv, downloadFilteredExport } from "@/lib/export-utils";
 import {
   DataTablePagination,
   PaginationMeta,
@@ -27,6 +28,8 @@ import {
   ArrowDown,
   Filter,
   UserCheck,
+  Upload,
+  Download,
 } from "lucide-react";
 
 const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "LOST", "CONVERTED"];
@@ -97,6 +100,7 @@ function LeadsContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Form State
@@ -373,13 +377,31 @@ function LeadsContent() {
 
   return (
     <div className="space-y-6 pb-16">
-      <PageHeader
-        title="Leads Pipeline"
-        description="Track, nurture, and convert potential customer prospects into revenue opportunities."
-        actionText="Capture Lead"
-        onAction={handleOpenCreate}
-        icon={Target}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <PageHeader
+          title="Leads Pipeline"
+          description="Track, nurture, and convert potential customer prospects into revenue opportunities."
+          actionText="Capture Lead"
+          onAction={handleOpenCreate}
+          icon={Target}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Upload className="w-3.5 h-3.5 text-primary" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => downloadFilteredExport("leads", searchParams.toString())}
+            className="px-3 py-2 bg-secondary hover:bg-accent text-secondary-foreground font-semibold rounded-md text-xs flex items-center gap-1.5 transition-colors border border-border"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-500" />
+            Export CSV
+          </button>
+        </div>
+      </div>
 
       {/* Toolbar & Filter Panel */}
       <div className="bg-card p-4 rounded-lg border border-border space-y-3">
@@ -869,6 +891,13 @@ function LeadsContent() {
           lead={selectedLead}
         />
       )}
+      {/* CSV Import Modal */}
+      <CsvImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entity="leads"
+        onSuccess={fetchLeads}
+      />
     </div>
   );
 }
