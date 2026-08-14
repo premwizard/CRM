@@ -99,6 +99,7 @@ model User {
   role             Role                 @default(USER)
   isActive         Boolean              @default(true)
   memberships      OrganizationMember[]
+  comments         Comment[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -466,5 +467,22 @@ model Notification {
   @@index([organizationId])
   @@index([recipientUserId])
   @@index([isRead])
+  @@index([createdAt])
+}
+
+model Comment {
+  id             String   @id @default(uuid())
+  organizationId String
+  authorId       String
+  author         User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content        String
+  entityType     String
+  entityId       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([authorId])
   @@index([createdAt])
 }
