@@ -1,28 +1,30 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { ActivityType } from "@prisma/client";
+import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
 // GET /api/v1/notes
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const contactId = req.query.contactId as string;
     const companyId = req.query.companyId as string;
     const leadId = req.query.leadId as string;
     const dealId = req.query.dealId as string;
     const sort = (req.query.sort as string) || "newest";
 
-    const AND: Record<string, unknown>[] = [];
+    const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
     if (contactId) AND.push({ contactId });
     if (companyId) AND.push({ companyId });
     if (leadId) AND.push({ leadId });
     if (dealId) AND.push({ dealId });
 
-    const where = AND.length > 0 ? { AND } : {};
     const orderBy = sort === "oldest" ? { createdAt: "asc" as const } : { createdAt: "desc" as const };
 
-    const notes = await db.note.findMany({ where, orderBy });
+    const notes = await db.note.findMany({ where: { AND }, orderBy });
     return res.json({ success: true, data: { notes } });
   } catch (err) {
     return res.status(500).json({ success: false, error: "Failed to fetch notes" });
@@ -30,10 +32,14 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/v1/notes
-router.post("/", async (req, res) => {
+router.post("/", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const note = await db.note.create({
-      data: req.body,
+      data: {
+        ...req.body,
+        organizationId: tenantId,
+      },
     });
 
     try {
@@ -52,6 +58,7 @@ router.post("/", async (req, res) => {
           companyId: req.body.companyId || null,
           leadId: req.body.leadId || null,
           dealId: req.body.dealId || null,
+          organizationId: tenantId,
         },
       });
     } catch {
@@ -65,10 +72,20 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/v1/notes/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
+    const noteId = String(req.params.id);
+
+    const existing = await db.note.findFirst({
+      where: { id: noteId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Note not found" });
+    }
+
     const note = await db.note.update({
-      where: { id: req.params.id },
+      where: { id: noteId },
       data: { content: req.body.content },
     });
     return res.json({ success: true, data: { note } });
@@ -78,9 +95,19 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/v1/notes/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
-    await db.note.delete({ where: { id: req.params.id } });
+    const tenantId = await resolveTenantId(req);
+    const noteId = String(req.params.id);
+
+    const existing = await db.note.findFirst({
+      where: { id: noteId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Note not found" });
+    }
+
+    await db.note.delete({ where: { id: noteId } });
     return res.json({ success: true, message: "Note deleted" });
   } catch (err) {
     return res.status(500).json({ success: false, error: "Failed to delete note" });

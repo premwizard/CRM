@@ -134,6 +134,7 @@ model OrganizationMember {
 
 model Company {
   id             String       @id @default(uuid())
+  organizationId String?
   name           String
   industry       String?
   website        String?
@@ -152,10 +153,12 @@ model Company {
   updatedAt      DateTime     @updatedAt
 
   @@index([name])
+  @@index([organizationId])
 }
 
 model Contact {
   id             String       @id @default(uuid())
+  organizationId String?
   firstName      String
   lastName       String
   email          String       @unique
@@ -177,10 +180,12 @@ model Contact {
   @@index([email])
   @@index([lastName, firstName])
   @@index([companyId])
+  @@index([organizationId])
 }
 
 model Lead {
   id                 String     @id @default(uuid())
+  organizationId     String?
   name               String
   email              String?
   phone              String?
@@ -207,10 +212,12 @@ model Lead {
   @@index([status])
   @@index([source])
   @@index([name])
+  @@index([organizationId])
 }
 
 model Deal {
   id                String             @id @default(uuid())
+  organizationId    String?
   name              String
   companyId         String?
   company           Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -237,6 +244,7 @@ model Deal {
   @@index([companyId])
   @@index([contactId])
   @@index([name])
+  @@index([organizationId])
 }
 
 model DealStageHistory {
@@ -252,24 +260,25 @@ model DealStageHistory {
 }
 
 model Task {
-  id          String       @id @default(uuid())
-  title       String
-  description String?
-  dueDate     DateTime?
-  priority    TaskPriority @default(MEDIUM)
-  status      TaskStatus   @default(TODO)
-  assignedTo  String?
-  contactId   String?
-  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  companyId   String?
-  company     Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  leadId      String?
-  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  dealId      String?
-  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  activities  Activity[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  organizationId String?
+  title          String
+  description    String?
+  dueDate        DateTime?
+  priority       TaskPriority @default(MEDIUM)
+  status         TaskStatus   @default(TODO)
+  assignedTo     String?
+  contactId      String?
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId      String?
+  company        Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leadId         String?
+  lead           Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  dealId         String?
+  deal           Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  activities     Activity[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([status])
   @@index([priority])
@@ -278,30 +287,32 @@ model Task {
   @@index([companyId])
   @@index([leadId])
   @@index([dealId])
+  @@index([organizationId])
 }
 
 model Activity {
-  id           String           @id @default(uuid())
-  title        String
-  type         ActivityType     @default(NOTE)
-  description  String?
-  outcome      ActivityOutcome?
-  duration     Int?
-  nextAction   String?
-  followUpDate DateTime?
-  taskId       String?
-  task         Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  contactId    String?
-  contact      Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  companyId    String?
-  company      Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  leadId       String?
-  lead         Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  dealId       String?
-  deal         Deal?            @relation(fields: [dealId], references: [id], onDelete: SetNull)
-  performedBy  String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id             String           @id @default(uuid())
+  organizationId String?
+  title          String
+  type           ActivityType     @default(NOTE)
+  description    String?
+  outcome        ActivityOutcome?
+  duration       Int?
+  nextAction     String?
+  followUpDate   DateTime?
+  taskId         String?
+  task           Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  contactId      String?
+  contact        Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId      String?
+  company        Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  leadId         String?
+  lead           Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  dealId         String?
+  deal           Deal?            @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  performedBy    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([type])
   @@index([outcome])
@@ -310,41 +321,46 @@ model Activity {
   @@index([leadId])
   @@index([dealId])
   @@index([taskId])
+  @@index([organizationId])
 }
 
 model Note {
-  id        String   @id @default(uuid())
-  content   String
-  createdBy String?
-  contactId String?
-  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  leadId    String?
-  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  dealId    String?
-  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  organizationId String?
+  content        String
+  createdBy      String?
+  contactId      String?
+  contact        Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  leadId         String?
+  lead           Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  dealId         String?
+  deal           Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([contactId])
   @@index([companyId])
   @@index([leadId])
   @@index([dealId])
+  @@index([organizationId])
 }
 
 model Tag {
-  id        String       @id @default(uuid())
-  name      String       @unique
-  color     String?      @default("#3B82F6")
-  contacts  ContactTag[]
-  companies CompanyTag[]
-  leads     LeadTag[]
-  deals     DealTag[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id             String       @id @default(uuid())
+  organizationId String?
+  name           String       @unique
+  color          String?      @default("#3B82F6")
+  contacts       ContactTag[]
+  companies      CompanyTag[]
+  leads          LeadTag[]
+  deals          DealTag[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([name])
+  @@index([organizationId])
 }
 
 model ContactTag {
@@ -391,16 +407,18 @@ enum SegmentEntityType {
 }
 
 model Segment {
-  id           String            @id @default(uuid())
-  name         String
-  description  String?
-  entityType   SegmentEntityType
-  filterConfig Json
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id             String            @id @default(uuid())
+  organizationId String?
+  name           String
+  description    String?
+  entityType     SegmentEntityType
+  filterConfig   Json
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@index([entityType])
   @@index([name])
+  @@index([organizationId])
 }
 
 model TeamInvitation {

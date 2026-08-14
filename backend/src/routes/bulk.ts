@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../config/db";
 import { LeadStatus, DealStage, ForecastCategory, ActivityType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission, normalizeRole } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
@@ -42,6 +43,7 @@ const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
 // ==========================================
 router.post("/contacts", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { action, ids, data } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -55,7 +57,7 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
     // 1. Export Action
     if (action === "export") {
       const contacts = await db.contact.findMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         include: {
           company: { select: { id: true, name: true } },
           tags: { include: { tag: true } },
@@ -77,7 +79,7 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
       const ownerValue = owner !== undefined ? owner : null;
 
       const result = await db.contact.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         data: { owner: ownerValue },
       });
 
@@ -98,10 +100,12 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
 
       if (!targetTagId && tagName) {
         const nameClean = tagName.trim();
-        let existingTag = await db.tag.findUnique({ where: { name: nameClean } });
+        let existingTag = await db.tag.findFirst({
+          where: { name: nameClean, organizationId: tenantId },
+        });
         if (!existingTag) {
           existingTag = await db.tag.create({
-            data: { name: nameClean, color: color || "#3B82F6" },
+            data: { name: nameClean, color: color || "#3B82F6", organizationId: tenantId },
           });
         }
         targetTagId = existingTag.id;
@@ -115,8 +119,15 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
       let failureCount = 0;
       const errors: { id: string; error: string }[] = [];
 
+      // Filter ids to authorized tenant contacts only
+      const tenantContacts = await db.contact.findMany({
+        where: { id: { in: ids }, organizationId: tenantId },
+        select: { id: true },
+      });
+      const validContactIds = tenantContacts.map((c) => c.id);
+
       await db.$transaction(async (tx) => {
-        for (const contactId of ids) {
+        for (const contactId of validContactIds) {
           try {
             await tx.contactTag.upsert({
               where: { contactId_tagId: { contactId, tagId: targetTagId } },
@@ -133,7 +144,7 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
 
       return res.json({
         success: true,
-        data: { action: "add-tag", successCount, failureCount, errors },
+        data: { action: "add-tag", successCount, failureCount: failureCount + (ids.length - validContactIds.length), errors },
       });
     }
 
@@ -144,9 +155,15 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
         return res.status(400).json({ success: false, error: "Tag ID is required" });
       }
 
+      const tenantContacts = await db.contact.findMany({
+        where: { id: { in: ids }, organizationId: tenantId },
+        select: { id: true },
+      });
+      const validContactIds = tenantContacts.map((c) => c.id);
+
       const result = await db.contactTag.deleteMany({
         where: {
-          contactId: { in: ids },
+          contactId: { in: validContactIds },
           tagId: tagId,
         },
       });
@@ -164,7 +181,7 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
     // 5. Delete Contacts
     if (action === "delete") {
       const result = await db.contact.deleteMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
       });
 
       return res.json({
@@ -191,6 +208,7 @@ router.post("/contacts", requireWritePermission, async (req, res) => {
 // ==========================================
 router.post("/leads", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { action, ids, data } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -204,7 +222,7 @@ router.post("/leads", requireWritePermission, async (req, res) => {
     // 1. Export Action
     if (action === "export") {
       const leads = await db.lead.findMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         include: {
           tags: { include: { tag: true } },
           convertedCompany: { select: { id: true, name: true } },
@@ -230,7 +248,7 @@ router.post("/leads", requireWritePermission, async (req, res) => {
       }
 
       const result = await db.lead.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         data: { status: status as LeadStatus },
       });
 
@@ -250,7 +268,7 @@ router.post("/leads", requireWritePermission, async (req, res) => {
       const ownerValue = owner !== undefined ? owner : null;
 
       const result = await db.lead.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         data: { owner: ownerValue },
       });
 
@@ -271,10 +289,12 @@ router.post("/leads", requireWritePermission, async (req, res) => {
 
       if (!targetTagId && tagName) {
         const nameClean = tagName.trim();
-        let existingTag = await db.tag.findUnique({ where: { name: nameClean } });
+        let existingTag = await db.tag.findFirst({
+          where: { name: nameClean, organizationId: tenantId },
+        });
         if (!existingTag) {
           existingTag = await db.tag.create({
-            data: { name: nameClean, color: color || "#3B82F6" },
+            data: { name: nameClean, color: color || "#3B82F6", organizationId: tenantId },
           });
         }
         targetTagId = existingTag.id;
@@ -288,8 +308,14 @@ router.post("/leads", requireWritePermission, async (req, res) => {
       let failureCount = 0;
       const errors: { id: string; error: string }[] = [];
 
+      const tenantLeads = await db.lead.findMany({
+        where: { id: { in: ids }, organizationId: tenantId },
+        select: { id: true },
+      });
+      const validLeadIds = tenantLeads.map((l) => l.id);
+
       await db.$transaction(async (tx) => {
-        for (const leadId of ids) {
+        for (const leadId of validLeadIds) {
           try {
             await tx.leadTag.upsert({
               where: { leadId_tagId: { leadId, tagId: targetTagId } },
@@ -306,14 +332,14 @@ router.post("/leads", requireWritePermission, async (req, res) => {
 
       return res.json({
         success: true,
-        data: { action: "add-tag", successCount, failureCount, errors },
+        data: { action: "add-tag", successCount, failureCount: failureCount + (ids.length - validLeadIds.length), errors },
       });
     }
 
     // 5. Delete Leads
     if (action === "delete") {
       const result = await db.lead.deleteMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
       });
 
       return res.json({
@@ -340,6 +366,7 @@ router.post("/leads", requireWritePermission, async (req, res) => {
 // ==========================================
 router.post("/deals", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { action, ids, data } = req.body;
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -365,10 +392,15 @@ router.post("/deals", requireWritePermission, async (req, res) => {
       let failureCount = 0;
       const errors: { id: string; error: string }[] = [];
 
+      const tenantDeals = await db.deal.findMany({
+        where: { id: { in: ids }, organizationId: tenantId },
+      });
+      const validDealIds = tenantDeals.map((d) => d.id);
+
       await db.$transaction(async (tx) => {
-        for (const dealId of ids) {
+        for (const dealId of validDealIds) {
           try {
-            const existingDeal = await tx.deal.findUnique({ where: { id: dealId } });
+            const existingDeal = tenantDeals.find((d) => d.id === dealId);
             if (!existingDeal) {
               failureCount++;
               errors.push({ id: dealId, error: "Deal not found" });
@@ -403,6 +435,7 @@ router.post("/deals", requireWritePermission, async (req, res) => {
                   dealId,
                   companyId: updatedDeal.companyId || null,
                   contactId: updatedDeal.contactId || null,
+                  organizationId: tenantId,
                 },
               });
             }
@@ -416,7 +449,7 @@ router.post("/deals", requireWritePermission, async (req, res) => {
 
       return res.json({
         success: true,
-        data: { action: "change-stage", successCount, failureCount, errors },
+        data: { action: "change-stage", successCount, failureCount: failureCount + (ids.length - validDealIds.length), errors },
       });
     }
 
@@ -426,7 +459,7 @@ router.post("/deals", requireWritePermission, async (req, res) => {
       const ownerValue = owner !== undefined ? owner : null;
 
       const result = await db.deal.updateMany({
-        where: { id: { in: ids } },
+        where: { id: { in: ids }, organizationId: tenantId },
         data: { owner: ownerValue },
       });
 
@@ -447,10 +480,12 @@ router.post("/deals", requireWritePermission, async (req, res) => {
 
       if (!targetTagId && tagName) {
         const nameClean = tagName.trim();
-        let existingTag = await db.tag.findUnique({ where: { name: nameClean } });
+        let existingTag = await db.tag.findFirst({
+          where: { name: nameClean, organizationId: tenantId },
+        });
         if (!existingTag) {
           existingTag = await db.tag.create({
-            data: { name: nameClean, color: color || "#3B82F6" },
+            data: { name: nameClean, color: color || "#3B82F6", organizationId: tenantId },
           });
         }
         targetTagId = existingTag.id;
@@ -464,8 +499,14 @@ router.post("/deals", requireWritePermission, async (req, res) => {
       let failureCount = 0;
       const errors: { id: string; error: string }[] = [];
 
+      const tenantDeals = await db.deal.findMany({
+        where: { id: { in: ids }, organizationId: tenantId },
+        select: { id: true },
+      });
+      const validDealIds = tenantDeals.map((d) => d.id);
+
       await db.$transaction(async (tx) => {
-        for (const dealId of ids) {
+        for (const dealId of validDealIds) {
           try {
             await tx.dealTag.upsert({
               where: { dealId_tagId: { dealId, tagId: targetTagId } },
@@ -482,7 +523,7 @@ router.post("/deals", requireWritePermission, async (req, res) => {
 
       return res.json({
         success: true,
-        data: { action: "add-tag", successCount, failureCount, errors },
+        data: { action: "add-tag", successCount, failureCount: failureCount + (ids.length - validDealIds.length), errors },
       });
     }
 

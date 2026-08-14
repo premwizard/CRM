@@ -1,14 +1,16 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
 // GET /api/v1/companies
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const search = (req.query.search as string) || "";
-    const where = search
+    const searchWhere = search
       ? {
           OR: [
             { name: { contains: search, mode: "insensitive" as const } },
@@ -16,8 +18,12 @@ router.get("/", async (req, res) => {
           ],
         }
       : {};
+
     const companies = await db.company.findMany({
-      where,
+      where: {
+        ...searchWhere,
+        organizationId: tenantId,
+      },
       include: { _count: { select: { contacts: true, deals: true } } },
       orderBy: { createdAt: "desc" },
     });
@@ -32,7 +38,13 @@ router.get("/", async (req, res) => {
 // POST /api/v1/companies
 router.post("/", requireWritePermission, async (req, res) => {
   try {
-    const company = await db.company.create({ data: req.body });
+    const tenantId = await resolveTenantId(req);
+    const company = await db.company.create({
+      data: {
+        ...req.body,
+        organizationId: tenantId,
+      },
+    });
     return res.status(201).json({ success: true, data: { company } });
   } catch (err) {
     return res
@@ -44,9 +56,10 @@ router.post("/", requireWritePermission, async (req, res) => {
 // GET /api/v1/companies/:id
 router.get("/:id", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const companyId = String(req.params.id);
-    const company = await db.company.findUnique({
-      where: { id: companyId },
+    const company = await db.company.findFirst({
+      where: { id: companyId, organizationId: tenantId },
       include: { contacts: true, deals: true },
     });
     if (!company)
@@ -64,7 +77,16 @@ router.get("/:id", async (req, res) => {
 // PUT /api/v1/companies/:id
 router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const companyId = String(req.params.id);
+
+    const existing = await db.company.findFirst({
+      where: { id: companyId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Company not found" });
+    }
+
     const company = await db.company.update({
       where: { id: companyId },
       data: req.body,
@@ -80,7 +102,16 @@ router.put("/:id", requireWritePermission, async (req, res) => {
 // DELETE /api/v1/companies/:id
 router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const companyId = String(req.params.id);
+
+    const existing = await db.company.findFirst({
+      where: { id: companyId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Company not found" });
+    }
+
     await db.company.delete({ where: { id: companyId } });
     return res.json({ success: true, message: "Company deleted" });
   } catch (err) {

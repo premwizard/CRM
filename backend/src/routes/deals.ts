@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../config/db";
 import { DealStage, ForecastCategory, ActivityType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
@@ -40,7 +41,9 @@ const defaultCategoryForStage = (stage: DealStage): ForecastCategory => {
 // GET /api/v1/deals/forecast
 router.get("/forecast", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const deals = await db.deal.findMany({
+      where: { organizationId: tenantId },
       select: {
         id: true,
         name: true,
@@ -89,19 +92,18 @@ router.get("/forecast", async (req, res) => {
 // GET /api/v1/deals
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const search = (req.query.search as string) || "";
     const stage = req.query.stage as string;
 
-    const AND: Record<string, unknown>[] = [];
+    const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
     if (search) {
       AND.push({ name: { contains: search, mode: "insensitive" as const } });
     }
     if (stage) AND.push({ stage });
 
-    const where = AND.length > 0 ? { AND } : {};
-
     const deals = await db.deal.findMany({
-      where,
+      where: { AND },
       include: {
         company: { select: { id: true, name: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
@@ -119,6 +121,7 @@ router.get("/", async (req, res) => {
 // POST /api/v1/deals
 router.post("/", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { expectedCloseDate, probability, forecastCategory, stage, ...restData } = req.body;
     const calcProb = probability ?? defaultProbabilityForStage(stage || DealStage.NEW);
     const calcCat = forecastCategory ?? defaultCategoryForStage(stage || DealStage.NEW);
@@ -130,6 +133,7 @@ router.post("/", requireWritePermission, async (req, res) => {
         probability: calcProb,
         forecastCategory: calcCat,
         expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : null,
+        organizationId: tenantId,
       },
       include: {
         company: { select: { id: true, name: true } },
@@ -146,8 +150,11 @@ router.post("/", requireWritePermission, async (req, res) => {
 // PUT /api/v1/deals/:id
 router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const id = String(req.params.id);
-    const existingDeal = await db.deal.findUnique({ where: { id } });
+    const existingDeal = await db.deal.findFirst({
+      where: { id, organizationId: tenantId },
+    });
 
     if (!existingDeal) {
       return res.status(404).json({ success: false, error: "Deal not found" });
@@ -202,6 +209,7 @@ router.put("/:id", requireWritePermission, async (req, res) => {
             dealId: id,
             companyId: deal.companyId || null,
             contactId: deal.contactId || null,
+            organizationId: tenantId,
           },
         });
       } catch {
@@ -218,7 +226,16 @@ router.put("/:id", requireWritePermission, async (req, res) => {
 // DELETE /api/v1/deals/:id
 router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const dealId = String(req.params.id);
+
+    const existing = await db.deal.findFirst({
+      where: { id: dealId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Deal not found" });
+    }
+
     await db.deal.delete({ where: { id: dealId } });
     return res.json({ success: true, message: "Deal deleted" });
   } catch (err) {

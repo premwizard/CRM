@@ -2,6 +2,8 @@ import { Router } from "express";
 import { db } from "../config/db";
 import { parseCsvString } from "../utils/csv-parser";
 import { LeadStatus, LeadSource } from "@prisma/client";
+import { resolveTenantId } from "../middleware/tenant";
+import { requireWritePermission } from "../middleware/rbac";
 
 const router = Router();
 
@@ -26,6 +28,7 @@ function getFieldValue(row: Record<string, string>, possibleKeys: string[]): str
 // ==========================================
 router.get("/export/:entity", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { entity } = req.params;
     const { search, status, stage, industry, tagId, companyId, source } = req.query as Record<string, string>;
 
@@ -33,7 +36,7 @@ router.get("/export/:entity", async (req, res) => {
     let rows: Record<string, unknown>[] = [];
 
     if (entity === "contacts") {
-      const AND: Record<string, unknown>[] = [];
+      const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
       if (search) {
         AND.push({
           OR: [
@@ -47,9 +50,8 @@ router.get("/export/:entity", async (req, res) => {
       if (companyId) AND.push({ companyId });
       if (tagId) AND.push({ tags: { some: { tagId } } });
 
-      const where = AND.length > 0 ? { AND } : {};
       const contacts = await db.contact.findMany({
-        where,
+        where: { AND },
         include: {
           company: { select: { name: true } },
           tags: { include: { tag: true } },
@@ -70,7 +72,7 @@ router.get("/export/:entity", async (req, res) => {
         "Created At": c.createdAt.toISOString(),
       }));
     } else if (entity === "companies") {
-      const AND: Record<string, unknown>[] = [];
+      const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
       if (search) {
         AND.push({
           OR: [
@@ -83,9 +85,8 @@ router.get("/export/:entity", async (req, res) => {
       if (industry) AND.push({ industry });
       if (tagId) AND.push({ tags: { some: { tagId } } });
 
-      const where = AND.length > 0 ? { AND } : {};
       const companies = await db.company.findMany({
-        where,
+        where: { AND },
         include: {
           tags: { include: { tag: true } },
           _count: { select: { contacts: true, deals: true } },
@@ -107,7 +108,7 @@ router.get("/export/:entity", async (req, res) => {
         "Created At": c.createdAt.toISOString(),
       }));
     } else if (entity === "leads") {
-      const AND: Record<string, unknown>[] = [];
+      const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
       if (search) {
         AND.push({
           OR: [
@@ -121,9 +122,8 @@ router.get("/export/:entity", async (req, res) => {
       if (source) AND.push({ source });
       if (tagId) AND.push({ tags: { some: { tagId } } });
 
-      const where = AND.length > 0 ? { AND } : {};
       const leads = await db.lead.findMany({
-        where,
+        where: { AND },
         include: { tags: { include: { tag: true } } },
         orderBy: { createdAt: "desc" },
       });
@@ -142,14 +142,13 @@ router.get("/export/:entity", async (req, res) => {
         "Created At": l.createdAt.toISOString(),
       }));
     } else if (entity === "deals") {
-      const AND: Record<string, unknown>[] = [];
+      const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
       if (search) AND.push({ name: { contains: search, mode: "insensitive" as const } });
       if (stage) AND.push({ stage });
       if (tagId) AND.push({ tags: { some: { tagId } } });
 
-      const where = AND.length > 0 ? { AND } : {};
       const deals = await db.deal.findMany({
-        where,
+        where: { AND },
         include: {
           company: { select: { name: true } },
           contact: { select: { firstName: true, lastName: true } },
@@ -219,6 +218,7 @@ router.get("/export/:entity", async (req, res) => {
 // ==========================================
 router.post("/import/validate", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { entity, csvContent } = req.body;
 
     if (!entity || !["contacts", "companies", "leads"].includes(entity)) {
@@ -246,19 +246,25 @@ router.post("/import/validate", async (req, res) => {
       errors: string[];
     }> = [];
 
-    // Pre-fetch existing emails/names for duplicate check
+    // Pre-fetch existing emails/names for duplicate check scoped to organizationId
     let existingEmails = new Set<string>();
     let existingCompanyNames = new Set<string>();
 
     if (entity === "contacts") {
-      const existing = await db.contact.findMany({ select: { email: true } });
+      const existing = await db.contact.findMany({
+        where: { organizationId: tenantId },
+        select: { email: true },
+      });
       existingEmails = new Set(existing.map((c) => c.email.toLowerCase()));
     } else if (entity === "companies") {
-      const existing = await db.company.findMany({ select: { name: true } });
+      const existing = await db.company.findMany({
+        where: { organizationId: tenantId },
+        select: { name: true },
+      });
       existingCompanyNames = new Set(existing.map((c) => c.name.toLowerCase()));
     } else if (entity === "leads") {
       const existing = await db.lead.findMany({
-        where: { email: { not: null } },
+        where: { organizationId: tenantId, email: { not: null } },
         select: { email: true },
       });
       existingEmails = new Set(
@@ -368,8 +374,9 @@ router.post("/import/validate", async (req, res) => {
 // ==========================================
 // POST /api/v1/import/execute
 // ==========================================
-router.post("/import/execute", async (req, res) => {
+router.post("/import/execute", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { entity, rows, allowPartial } = req.body;
 
     if (!entity || !["contacts", "companies", "leads"].includes(entity)) {
@@ -404,10 +411,10 @@ router.post("/import/execute", async (req, res) => {
           let companyId: string | null = null;
           if (companyName) {
             let foundComp = await tx.company.findFirst({
-              where: { name: { equals: companyName, mode: "insensitive" } },
+              where: { name: { equals: companyName, mode: "insensitive" }, organizationId: tenantId },
             });
             if (!foundComp) {
-              foundComp = await tx.company.create({ data: { name: companyName } });
+              foundComp = await tx.company.create({ data: { name: companyName, organizationId: tenantId } });
             }
             companyId = foundComp.id;
           }
@@ -422,6 +429,7 @@ router.post("/import/execute", async (req, res) => {
               companyId,
               owner: owner || null,
               notes: notes || null,
+              organizationId: tenantId,
             },
           });
           importedCount++;
@@ -451,6 +459,7 @@ router.post("/import/execute", async (req, res) => {
               phone: phone || null,
               address: address || null,
               notes: notes || null,
+              organizationId: tenantId,
             },
           });
           importedCount++;
@@ -496,6 +505,7 @@ router.post("/import/execute", async (req, res) => {
               value,
               owner: owner || null,
               notes: notes || null,
+              organizationId: tenantId,
             },
           });
           importedCount++;

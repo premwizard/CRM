@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../config/db";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
@@ -14,6 +15,7 @@ const includeRelations = {
 // GET /api/v1/tasks
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const search = (req.query.search as string) || "";
     const status = req.query.status as string;
     const priority = req.query.priority as string;
@@ -22,7 +24,7 @@ router.get("/", async (req, res) => {
     const leadId = req.query.leadId as string;
     const dealId = req.query.dealId as string;
 
-    const AND: Record<string, unknown>[] = [];
+    const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
     if (search) {
       AND.push({
         OR: [
@@ -38,10 +40,8 @@ router.get("/", async (req, res) => {
     if (leadId) AND.push({ leadId });
     if (dealId) AND.push({ dealId });
 
-    const where = AND.length > 0 ? { AND } : {};
-
     const tasks = await db.task.findMany({
-      where,
+      where: { AND },
       include: includeRelations,
       orderBy: { createdAt: "desc" },
     });
@@ -54,11 +54,13 @@ router.get("/", async (req, res) => {
 // POST /api/v1/tasks
 router.post("/", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const { dueDate, ...restData } = req.body;
     const task = await db.task.create({
       data: {
         ...restData,
         dueDate: dueDate ? new Date(dueDate) : null,
+        organizationId: tenantId,
       },
       include: includeRelations,
     });
@@ -71,7 +73,16 @@ router.post("/", requireWritePermission, async (req, res) => {
 // PUT /api/v1/tasks/:id
 router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const taskId = String(req.params.id);
+
+    const existing = await db.task.findFirst({
+      where: { id: taskId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Task not found" });
+    }
+
     const { dueDate, ...restData } = req.body;
     const task = await db.task.update({
       where: { id: taskId },
@@ -90,7 +101,16 @@ router.put("/:id", requireWritePermission, async (req, res) => {
 // DELETE /api/v1/tasks/:id
 router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const taskId = String(req.params.id);
+
+    const existing = await db.task.findFirst({
+      where: { id: taskId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Task not found" });
+    }
+
     await db.task.delete({ where: { id: taskId } });
     return res.json({ success: true, message: "Task deleted" });
   } catch (err) {

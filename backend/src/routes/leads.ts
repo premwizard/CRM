@@ -2,16 +2,18 @@ import { Router } from "express";
 import { db } from "../config/db";
 import { LeadStatus, DealStage } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
 // GET /api/v1/leads
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const search = (req.query.search as string) || "";
     const status = req.query.status as string;
 
-    const AND: Record<string, unknown>[] = [];
+    const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
     if (search) {
       AND.push({
         OR: [
@@ -26,9 +28,8 @@ router.get("/", async (req, res) => {
       AND.push({ status: status as LeadStatus });
     }
 
-    const where = AND.length > 0 ? { AND } : {};
     const leads = await db.lead.findMany({
-      where,
+      where: { AND },
       include: {
         convertedCompany: true,
         convertedContact: true,
@@ -48,9 +49,10 @@ router.get("/", async (req, res) => {
 // GET /api/v1/leads/:id
 router.get("/:id", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const leadId = String(req.params.id);
-    const lead = await db.lead.findUnique({
-      where: { id: leadId },
+    const lead = await db.lead.findFirst({
+      where: { id: leadId, organizationId: tenantId },
       include: {
         convertedCompany: true,
         convertedContact: true,
@@ -75,7 +77,13 @@ router.get("/:id", async (req, res) => {
 // POST /api/v1/leads
 router.post("/", requireWritePermission, async (req, res) => {
   try {
-    const lead = await db.lead.create({ data: req.body });
+    const tenantId = await resolveTenantId(req);
+    const lead = await db.lead.create({
+      data: {
+        ...req.body,
+        organizationId: tenantId,
+      },
+    });
     return res.status(201).json({ success: true, data: { lead } });
   } catch (err) {
     return res
@@ -87,7 +95,16 @@ router.post("/", requireWritePermission, async (req, res) => {
 // PUT /api/v1/leads/:id
 router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const leadId = String(req.params.id);
+
+    const existing = await db.lead.findFirst({
+      where: { id: leadId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Lead not found" });
+    }
+
     const lead = await db.lead.update({
       where: { id: leadId },
       data: req.body,
@@ -103,7 +120,16 @@ router.put("/:id", requireWritePermission, async (req, res) => {
 // DELETE /api/v1/leads/:id
 router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const leadId = String(req.params.id);
+
+    const existing = await db.lead.findFirst({
+      where: { id: leadId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Lead not found" });
+    }
+
     await db.lead.delete({ where: { id: leadId } });
     return res.json({ success: true, message: "Lead deleted" });
   } catch (err) {

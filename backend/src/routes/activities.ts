@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../config/db";
 import { ActivityType, ActivityOutcome, TaskPriority, TaskStatus } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
+import { resolveTenantId } from "../middleware/tenant";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const activityInclude = {
 // GET /api/v1/activities
 router.get("/", async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const search = (req.query.search as string) || "";
     const type = req.query.type as string;
     const contactId = req.query.contactId as string;
@@ -23,7 +25,7 @@ router.get("/", async (req, res) => {
     const leadId = req.query.leadId as string;
     const dealId = req.query.dealId as string;
 
-    const AND: Record<string, unknown>[] = [];
+    const AND: Record<string, unknown>[] = [{ organizationId: tenantId }];
     if (search) {
       AND.push({
         OR: [
@@ -42,10 +44,8 @@ router.get("/", async (req, res) => {
     if (leadId) AND.push({ leadId });
     if (dealId) AND.push({ dealId });
 
-    const where = AND.length > 0 ? { AND } : {};
-
     const activities = await db.activity.findMany({
-      where,
+      where: { AND },
       include: activityInclude,
       orderBy: { createdAt: "desc" },
     });
@@ -61,6 +61,7 @@ router.get("/", async (req, res) => {
 // POST /api/v1/activities
 router.post("/", requireWritePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const {
       followUpDate,
       createFollowUpTask,
@@ -97,6 +98,7 @@ router.post("/", requireWritePermission, async (req, res) => {
           companyId: restData.companyId || null,
           leadId: restData.leadId || null,
           dealId: restData.dealId || null,
+          organizationId: tenantId,
         },
       });
 
@@ -111,6 +113,7 @@ router.post("/", requireWritePermission, async (req, res) => {
         nextAction: nextAction || null,
         followUpDate: followUpDate ? new Date(followUpDate) : null,
         taskId: createdTaskId,
+        organizationId: tenantId,
       },
       include: activityInclude,
     });
@@ -126,7 +129,16 @@ router.post("/", requireWritePermission, async (req, res) => {
 // DELETE /api/v1/activities/:id
 router.delete("/:id", requireWritePermission, requireDeletePermission, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req);
     const activityId = String(req.params.id);
+
+    const existing = await db.activity.findFirst({
+      where: { id: activityId, organizationId: tenantId },
+    });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: "Activity not found" });
+    }
+
     await db.activity.delete({ where: { id: activityId } });
     return res.json({ success: true, message: "Activity deleted" });
   } catch (err) {
