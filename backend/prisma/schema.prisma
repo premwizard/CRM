@@ -100,6 +100,7 @@ model User {
   isActive         Boolean              @default(true)
   memberships      OrganizationMember[]
   comments         Comment[]
+  attachments      Attachment[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -484,5 +485,24 @@ model Comment {
   @@index([organizationId])
   @@index([entityType, entityId])
   @@index([authorId])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id               String   @id @default(uuid())
+  organizationId   String
+  uploadedById     String
+  uploadedBy       User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  originalFileName String
+  storageKey       String
+  mimeType         String
+  size             Int
+  entityType       String
+  entityId         String
+  createdAt        DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([uploadedById])
   @@index([createdAt])
 }
