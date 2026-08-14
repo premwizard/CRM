@@ -3,6 +3,7 @@ import { db } from "../config/db";
 import { MemberRole, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { verifyToken } from "../utils/auth";
+import { logAudit } from "../services/audit";
 
 const router = Router();
 
@@ -290,6 +291,24 @@ router.put("/members/:id/role", async (req, res) => {
       where: { id },
       data: { role: mapMemberRoleToUserRole(targetRole) },
     });
+
+    try {
+      const org = await db.organization.findFirst();
+      if (org && authCheck.userId) {
+        await logAudit({
+          organizationId: org.id,
+          userId: authCheck.userId,
+          action: "ROLE_CHANGED",
+          entityType: "Role",
+          entityId: updatedUser.id,
+          description: `Changed role for ${updatedUser.email} to ${targetRole}`,
+          oldValues: { role: user.memberships[0]?.role || user.role },
+          newValues: { role: targetRole },
+        });
+      }
+    } catch {
+      // Ignore background log errors
+    }
 
     return res.json({
       success: true,

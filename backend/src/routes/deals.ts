@@ -4,6 +4,8 @@ import { DealStage, ForecastCategory, ActivityType, NotificationType } from "@pr
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
 import { createNotification, resolveUserId } from "../services/notifications";
+import { logAudit } from "../services/audit";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -208,6 +210,27 @@ router.put("/:id", requireWritePermission, async (req, res) => {
         contact: { select: { id: true, firstName: true, lastName: true } },
       },
     });
+
+    try {
+      const authReq = req as unknown as AuthenticatedRequest;
+      const userId = authReq.user?.userId || "system";
+      const isStageChange = stage && stage !== existingDeal.stage;
+
+      await logAudit({
+        organizationId: tenantId,
+        userId,
+        action: isStageChange ? "STAGE_CHANGE" : "UPDATE",
+        entityType: "Deal",
+        entityId: deal.id,
+        description: isStageChange
+          ? `Moved deal "${deal.name}" from ${existingDeal.stage} to ${stage}`
+          : `Updated deal "${deal.name}"`,
+        oldValues: existingDeal,
+        newValues: deal,
+      });
+    } catch {
+      // Ignore background log errors
+    }
 
     if (stage && stage !== existingDeal.stage) {
       try {

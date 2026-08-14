@@ -4,6 +4,8 @@ import { LeadStatus, DealStage, NotificationType } from "@prisma/client";
 import { requireWritePermission, requireDeletePermission } from "../middleware/rbac";
 import { resolveTenantId } from "../middleware/tenant";
 import { createNotification, resolveUserId } from "../services/notifications";
+import { logAudit } from "../services/audit";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
@@ -78,13 +80,30 @@ router.get("/:id", async (req, res) => {
 // POST /api/v1/leads
 router.post("/", requireWritePermission, async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const tenantId = await resolveTenantId(req);
+    const userId = authReq.user?.userId || "system";
+
     const lead = await db.lead.create({
       data: {
         ...req.body,
         organizationId: tenantId,
       },
     });
+
+    try {
+      await logAudit({
+        organizationId: tenantId,
+        userId,
+        action: "CREATE",
+        entityType: "Lead",
+        entityId: lead.id,
+        description: `Created lead "${lead.name}"`,
+        newValues: lead,
+      });
+    } catch {
+      // Ignore background log errors
+    }
 
     if (lead.owner) {
       try {
@@ -116,7 +135,9 @@ router.post("/", requireWritePermission, async (req, res) => {
 // PUT /api/v1/leads/:id
 router.put("/:id", requireWritePermission, async (req, res) => {
   try {
+    const authReq = req as unknown as AuthenticatedRequest;
     const tenantId = await resolveTenantId(req);
+    const userId = authReq.user?.userId || "system";
     const leadId = String(req.params.id);
 
     const existing = await db.lead.findFirst({
@@ -130,6 +151,32 @@ router.put("/:id", requireWritePermission, async (req, res) => {
       where: { id: leadId },
       data: req.body,
     });
+
+    try {
+      let auditAction = "UPDATE";
+      let desc = `Updated lead "${lead.name}"`;
+
+      if (lead.status && lead.status !== existing.status) {
+        auditAction = "STATUS_CHANGE";
+        desc = `Changed lead status from ${existing.status} to ${lead.status}`;
+      } else if (lead.owner && lead.owner !== existing.owner) {
+        auditAction = "ASSIGN";
+        desc = `Reassigned lead to ${lead.owner}`;
+      }
+
+      await logAudit({
+        organizationId: tenantId,
+        userId,
+        action: auditAction,
+        entityType: "Lead",
+        entityId: lead.id,
+        description: desc,
+        oldValues: existing,
+        newValues: lead,
+      });
+    } catch {
+      // Ignore background log errors
+    }
 
     if (lead.owner && lead.owner !== existing.owner) {
       try {

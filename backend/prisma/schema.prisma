@@ -101,6 +101,7 @@ model User {
   memberships      OrganizationMember[]
   comments         Comment[]
   attachments      Attachment[]
+  auditLogs        AuditLog[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
@@ -504,5 +505,26 @@ model Attachment {
   @@index([organizationId])
   @@index([entityType, entityId])
   @@index([uploadedById])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action         String
+  entityType     String
+  entityId       String
+  description    String
+  oldValues      Json?
+  newValues      Json?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
   @@index([createdAt])
 }
