@@ -20,13 +20,14 @@ interface AuthContextType {
   canManageTeam: boolean;
   login: (
     email: string,
-    password: string,
+    password: string
   ) => Promise<{ success: boolean; error?: string }>;
   register: (data: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
+    role?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -50,21 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         localStorage.removeItem("ic_crm_token");
         localStorage.removeItem("ic_crm_user");
+        setUser(null);
+        setToken(null);
       }
     } else {
-      // Default demo session for immediate CRM use
-      const demoUser: User = {
-        id: "usr_admin_demo",
-        email: "admin@iccrm.io",
-        firstName: "Admin",
-        lastName: "User",
-        role: "ADMIN",
-      };
-      const demoToken = "mock_jwt_token_admin_demo";
-      setUser(demoUser);
-      setToken(demoToken);
-      localStorage.setItem("ic_crm_user", JSON.stringify(demoUser));
-      localStorage.setItem("ic_crm_token", demoToken);
+      setUser(null);
+      setToken(null);
     }
     setLoading(false);
   }, []);
@@ -98,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string;
     firstName: string;
     lastName: string;
+    role?: string;
   }) => {
     try {
       const res = await fetch("/api/v1/auth/register", {
