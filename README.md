@@ -4,11 +4,11 @@
 
 **A scalable, production-ready Customer Relationship Management (CRM) platform built with Next.js 15, Node.js, TypeScript, Tailwind CSS, PostgreSQL, and Prisma ORM.**
 
+[![CI/CD Pipeline](https://github.com/your-username/ic-crm/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/your-username/ic-crm/actions)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
 </div>
 
@@ -18,10 +18,11 @@
 
 - [Overview](#-overview)
 - [Architecture](#-architecture)
-- [Features](#-features)
+- [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [API Documentation](#-api-documentation)
+- [Production Setup & Deployment](#-production-setup--deployment)
+- [CI/CD Workflow](#-cicd-workflow)
+- [API Endpoints](#-api-endpoints)
 - [Database Schema](#-database-schema)
 - [License](#-license)
 
@@ -39,12 +40,14 @@ The project enforces a clean, modular full-stack architecture with separated `fr
 
 ```text
 ic-crm/
-├── frontend/                  # Next.js 15 App Router Frontend & REST API Handlers
+├── .github/workflows/         # Automated GitHub Actions CI/CD Pipeline
+│   └── ci-cd.yml
+├── frontend/                  # Next.js 15 App Router Frontend & Serverless API Routes
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── (auth)/        # Authentication Pages (/login, /register)
-│   │   │   ├── (dashboard)/   # CRM Workspace Pages (/dashboard, /contacts, /companies, /leads, /deals, /tasks, /activities, /reports, /settings)
-│   │   │   └── api/v1/        # Next.js Serverless API Route Handlers (/api/v1/...)
+│   │   │   ├── (dashboard)/   # Protected Workspace (/dashboard, /contacts, /companies, /leads, /deals, etc.)
+│   │   │   └── api/v1/        # API Handlers (/api/v1/...)
 │   │   ├── components/        # Reusable UI Components, Layout, Providers & Charts
 │   │   └── lib/               # Auth, DB Client, API Response Helpers
 │   ├── prisma/                # Prisma PostgreSQL Schema Definitions
@@ -61,188 +64,73 @@ ic-crm/
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### 🏢 B2B Company Accounts (`/companies`)
-- Full CRUD operations for corporate accounts.
-- Track industry verticals, websites, email, phone, physical addresses, and custom notes.
-- Direct association indicators showing total contacts and open deal values.
-
-### 👤 Contact Directory (`/contacts`)
-- Full CRUD management for individual decision-makers.
-- Direct company association drop-down pickers.
-- Search server-side by first name, last name, job title, or email.
-
-### 🎯 Qualified Leads & Conversion Workflow (`/leads` & `/leads/[id]`)
-- Full CRUD operations with `LeadStatus` (`NEW`, `CONTACTED`, `QUALIFIED`, `LOST`, `CONVERTED`).
-- `LeadSource` attribution (`WEBSITE`, `LINKEDIN`, `REFERRAL`, `EMAIL`, `ADVERTISEMENT`, `COLD_CALL`, `OTHER`).
-- **Lead Conversion Workflow**:
-  - Convert qualified leads (`NEW`, `CONTACTED`, `QUALIFIED`) directly into a **Company**, **Contact**, and **Deal** in a single atomic database transaction.
-  - Interactive conversion dialog pre-filled with lead details, supporting new creation or existing entity linking.
-  - Automatic duplicate company detection and warning alerts.
-  - Dedicated **Lead Details Page** (`/leads/[id]`) showing conversion history with clickable links to generated Company, Contact, and Deal entities.
-  - Transaction safety ensuring partial conversions roll back completely on error.
-  - Status lock disabling re-conversion of `CONVERTED` leads and prohibiting conversion of `LOST` leads.
-
-### 💼 Deals & Visual Sales Pipeline (`/deals`)
-- Interactive Kanban Board with drag-and-drop between 6 pipeline stages (`NEW`, `QUALIFIED`, `PROPOSAL`, `NEGOTIATION`, `WON`, `LOST`).
-- View toggle between **Board** (Kanban columns), **List** (Table view), and **Forecast Matrix** (Analytics breakdown).
-- **Weighted Pipeline Calculation** (`Weighted Value = Deal Value * Probability %`).
-- **Forecast Categories** (`OPEN`, `COMMIT`, `BEST_CASE`, `CLOSED`) and probability percentages.
-- Server-side PostgreSQL/Prisma sales forecasting aggregations by **Stage**, **Forecast Category**, **Owner**, and **Month**.
-- Stage transition audit logging (`DealStageHistory`) and automatic Activity timeline event logging (`Stage changed: OldStage → NewStage`).
-
-### 📋 CRM-Linked Tasks & Reminders (`/tasks` & entity details)
-- To-do list management with `TaskPriority` (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) and `TaskStatus` (`TODO`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`).
-- Due date scheduling, team member assignment fields, and **OVERDUE** indicators for past due tasks.
-- Directly link tasks to primary CRM entities (**Contact**, **Company**, **Lead**, **Deal**) with entity selectors and clickable links.
-- Embedded task management component (`EntityTasks`) on all detail pages ([/contacts/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/contacts/%5Bid%5D/page.tsx), [/companies/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/companies/%5Bid%5D/page.tsx), [/leads/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/leads/%5Bid%5D/page.tsx), [/deals/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/deals/%5Bid%5D/page.tsx)).
-
-### 📞 Unified CRM Activity Timeline (`/activities` & entity details)
-- Record complete interaction history (`CALL`, `EMAIL`, `MEETING`, `NOTE`, `TASK`, `OTHER`).
-- Reusable timeline UI component with date grouping (Today, Yesterday, Date), icon badges, performer user stamps, and deletion support.
-- Embedded timelines on **Contact Details** (`/contacts/[id]`), **Company Details** (`/companies/[id]`), **Lead Details** (`/leads/[id]`), and **Deal Details** (`/deals/[id]`).
-- Instant activity logging directly from entity timeline views.
-
-### 📝 Dedicated CRM Notes System (`/notes` & entity details)
-- Record, view, edit, and delete rich notes attached to Contacts, Companies, Leads, and Deals.
-- Sort notes chronologically (Newest First vs Oldest First).
-- Integrated with Activity Timeline for automatic `NOTE` event logging.
-- Embedded on all entity detail pages ([/contacts/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/contacts/%5Bid%5D/page.tsx), [/companies/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/companies/%5Bid%5D/page.tsx), [/leads/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/leads/%5Bid%5D/page.tsx), [/deals/[id]](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/deals/%5Bid%5D/page.tsx)).
-
-### 🏷️ Tags & Customer Segmentation (`/segments` & entity details)
-- Reusable color-coded tagging engine for Contacts, Companies, Leads, and Deals (e.g., *Enterprise*, *High Value*, *Startup*, *Healthcare*, *Hot Lead*, *SaaS*, *Priority*).
-- Interactive tag popovers and entity tag pills (`EntityTags`) embedded on all detail pages.
-- **Saved Customer Segments Hub** ([/segments](file:///c:/merged_partition_content/D%20drive/CRM%20Project/frontend/src/app/%28dashboard%29/segments/page.tsx)): Create, save, and manage target audience rule sets.
-- Dynamic PostgreSQL query evaluation: Reopen any saved segment to immediately evaluate filter rules against real-time database records.
-
-### 🔍 Global Search (`Header` & `/api/v1/search`)
-- Server-side full-text search across 6 core CRM entities (**Contacts**, **Companies**, **Leads**, **Deals**, **Tasks**, **Activities**).
-- 300ms debounced input preventing unnecessary database queries.
-- Categorized result dropdown grouping matching records with direct navigation links.
-- Keyboard shortcut support (`Ctrl+K` / `⌘K` to open/focus search, Arrow key selection, Enter to navigate, Escape to dismiss).
-
-### 📊 Advanced Data Tables & Server-Side Pagination
-- Server-side pagination (`page`, `pageSize`: 10, 25, 50, 100 per page) across **Contacts**, **Companies**, **Leads**, **Deals**, and **Tasks**.
-- Interactive sortable column headers with direction indicators (`▲` / `▼`).
-- Entity-appropriate filter toolbars (Tags, Status, Stage, Source, Company, Priority, Overdue status).
-- **URL Query Parameter State Preservation**: Filters and page settings mirror URL parameters (`?page=1&pageSize=10&status=QUALIFIED&sortBy=value`) for bookmarking and page refreshes.
-- Efficient PostgreSQL `skip`, `take`, and `count` queries preventing unnecessary record loads into client memory.
-
-### 📊 Live Executive Analytics & Reports (`/reports` & `/dashboard`)
-- Interactive Recharts bar graphs (Pipeline Stage Financial Volume) and donut charts (Lead Status Ratio).
-- One-click executive sample report generator with print/export capabilities.
+- **Mandatory JWT Authentication Guard**: Secure route protection redirecting unauthenticated sessions directly to `/login`.
+- **Dynamic User Workspace Profile**: Live profile binding displaying actual logged-in user details (`firstName`, `lastName`, `email`, `role`, avatar initials) across headers, sidebars, and settings.
+- **B2B Company Accounts (`/companies`)**: Full CRUD management for corporate profiles, ARR totals, industry classification, and contact links.
+- **Contact Hub (`/contacts`)**: Enriched customer directory with instant search, company link pickers, tags, and email/phone channels.
+- **Qualified Lead Pipeline & Conversion (`/leads`)**: Lead scoring, source attribution, and 1-click atomic conversion into Companies, Contacts, and Deals.
+- **Visual Sales Kanban (`/deals`)**: Interactive drag-and-drop opportunity board across 6 deal stages with weighted pipeline calculation (`Weighted Value = Deal Value * Probability %`).
+- **CRM Tasks & Reminders (`/tasks`)**: Task scheduling with priorities (`LOW`, `MEDIUM`, `HIGH`, `URGENT`), due date tracking, and direct entity associations.
+- **Executive Analytics & Reports (`/reports`)**: Live BI dashboards, stage pipeline distribution charts, lead conversion metrics, and sales forecasting.
+- **Custom Design Palette**: Luxury Warm Champagne & Pure Obsidian dark mode aesthetic.
 
 ---
 
-## 🛠️ Tech Stack
+## ⚡ Getting Started & Production Setup
 
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Lucide Icons, Recharts, Framer Motion, GSAP.
-- **Backend**: Node.js, Express.js, TypeScript, CORS.
-- **Database**: PostgreSQL with Prisma ORM v5.
-- **Security & Authentication**: JWT (JSON Web Tokens), Password Hashing (`bcryptjs`), Protected Route Middleware.
+### 1. Environment Variables
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js v18.x or higher
-- PostgreSQL Database running locally on `localhost:5432` or remote host.
-
-### Environment Setup
-
-Create `.env` inside `frontend/` and `backend/`:
+Create `.env` in `frontend/` and `backend/`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ic_crm?schema=public"
-JWT_SECRET="ic_crm_jwt_secret_key_change_in_production_32chars"
-JWT_EXPIRES_IN="7d"
-PORT=3000
-NODE_ENV="development"
+# Database Connection (PostgreSQL)
+DATABASE_URL="postgresql://postgres:password@localhost:5432/iccrm_db?schema=public"
+
+# Authentication Secret
+JWT_SECRET="your-super-secret-production-jwt-key"
+
+# App URL
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-### Installation
+### 2. Database Migration
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/ic-crm.git
-   cd ic-crm
-   ```
+Run Prisma migrations to initialize PostgreSQL schema:
 
-2. Install dependencies & initialize database:
-   ```bash
-   # Frontend setup
-   cd frontend
-   npm install
-   npx prisma db push
+```bash
+cd frontend
+npx prisma migrate dev --name init
+npx prisma generate
+```
 
-   # Backend setup
-   cd ../backend
-   npm install
-   ```
+### 3. Production Build
 
-3. Run Development Servers:
-   ```bash
-   # Start Next.js Frontend (port 3000 or 3001)
-   cd frontend
-   npm run dev
+Build frontend and backend packages:
 
-   # Start Express Backend (port 5000)
-   cd backend
-   npm run dev
-   ```
+```bash
+# Build Frontend Next.js app
+cd frontend
+npm run build
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+# Build Backend Express TS app
+cd ../backend
+npm run build
+```
 
 ---
 
-## 📡 API Documentation
+## 🤖 CI/CD Workflow with GitHub Actions
 
-Central API prefix: `/api/v1`
+The repository includes an automated GitHub Actions pipeline (`.github/workflows/ci-cd.yml`) that runs on every `push` and `pull_request` to `main` / `master`:
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/v1/health` | Service health status |
-| `POST` | `/api/v1/auth/register` | User account registration |
-| `POST` | `/api/v1/auth/register?action=login` | User authentication & JWT sign-in |
-| `GET` | `/api/v1/dashboard` | Live aggregate metrics from PostgreSQL |
-| `GET / POST` | `/api/v1/companies` | List (with search) and create company |
-| `PUT / DELETE` | `/api/v1/companies/:id` | Update or delete company by ID |
-| `GET / POST` | `/api/v1/contacts` | List (with search) and create contact |
-| `PUT / DELETE` | `/api/v1/contacts/:id` | Update or delete contact by ID |
-| `GET / POST` | `/api/v1/leads` | List (with search/filter) and create lead |
-| `GET` | `/api/v1/leads/:id` | Get lead details with converted relations |
-| `POST` | `/api/v1/leads/:id/convert` | **Convert lead** to Company, Contact, and Deal (Transaction-safe) |
-| `GET / POST` | `/api/v1/deals` | List (with search/filter) and create deal |
-| `GET / POST` | `/api/v1/tasks` | List (with status, priority, and entity filters `contactId`, `companyId`, `leadId`, `dealId`) and create task |
-| `PUT / DELETE` | `/api/v1/tasks/:id` | Update status, priority, entity linkage, or delete task |
-| `GET / POST` | `/api/v1/activities` | List (with entity filtering by `contactId`, `companyId`, `leadId`, `dealId`, and `type`) and log activity |
-| `DELETE` | `/api/v1/activities/:id` | Delete activity item by ID |
-| `GET / POST` | `/api/v1/notes` | List (filtered by entity with `sort=newest` / `sort=oldest`) and create note |
-| `PUT / DELETE` | `/api/v1/notes/:id` | Edit content or delete note by ID |
-| `GET` | `/api/v1/reports/generate` | Generate executive analytics report |
-
----
-
-## 🗄️ Database Schema
-
-The system uses Prisma ORM to interface with PostgreSQL:
-
-```mermaid
-erDiagram
-    User ||--o{ OrganizationMember : "memberships"
-    Organization ||--o{ OrganizationMember : "members"
-    Company ||--o{ Contact : "contacts"
-    Company ||--o{ Deal : "deals"
-    Contact ||--o{ Deal : "deals"
-    Contact ||--o{ Activity : "activities"
-    Deal ||--o{ Activity : "activities"
-```
+- **Automated Next.js Type Checks**: Validates TypeScript contracts across all App Router routes.
+- **Prisma Schema Validation**: Ensures database schema integrity.
+- **Automated Express TS Build Checks**: Verifies backend compilation.
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for details.
+Distributed under the **MIT License**. See `LICENSE` for details.
