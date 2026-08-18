@@ -4,65 +4,65 @@
 
 @layer base {
   :root {
-    --background: 44 98% 95%; /* #FEEC41 yellow light tint for background */
-    --foreground: 336 100% 23%; /* #760031 deep burgundy */
+    --background: 40 20% 98%; /* #FAFA7 Warm Ivory Champagne */
+    --foreground: 345 50% 12%; /* #2E1019 Deep Velvet Charcoal */
 
     --card: 0 0% 100%;
-    --card-foreground: 336 100% 23%;
+    --card-foreground: 345 50% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 336 100% 23%;
+    --popover-foreground: 345 50% 12%;
 
-    --primary: 351 77% 47%; /* #D51C39 rich crimson red */
+    --primary: 348 78% 45%; /* #CE1938 Elegant Regal Crimson */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 100% 93%; /* light red tint */
-    --secondary-foreground: 336 100% 23%;
+    --secondary: 350 40% 94%; /* Light Warm Tint */
+    --secondary-foreground: 345 50% 15%;
 
-    --muted: 0 100% 96%;
-    --muted-foreground: 351 50% 35%;
+    --muted: 350 20% 94%;
+    --muted-foreground: 345 15% 42%;
 
-    --accent: 0 100% 69%; /* #FF6060 coral accent */
-    --accent-foreground: 0 0% 100%;
+    --accent: 350 40% 94%;
+    --accent-foreground: 345 50% 15%;
 
-    --destructive: 351 77% 47%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 0 100% 88%;
-    --input: 0 100% 88%;
-    --ring: 351 77% 47%;
+    --border: 350 15% 88%;
+    --input: 350 15% 88%;
+    --ring: 348 78% 45%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 17%; /* #2C2C2C sleek dark charcoal */
-    --foreground: 180 3% 95%; /* #F3F4F4 off-white */
+    --background: 240 10% 4%; /* #0A0A0C Pure Obsidian Dark */
+    --foreground: 240 10% 96%; /* #F2F2F5 Crisp Off-White */
 
-    --card: 0 0% 12%; /* deeper dark charcoal */
-    --card-foreground: 180 3% 95%;
+    --card: 240 8% 8%; /* #141417 Elevated Charcoal Surface */
+    --card-foreground: 240 10% 96%;
 
-    --popover: 0 0% 12%;
-    --popover-foreground: 180 3% 95%;
+    --popover: 240 8% 8%;
+    --popover-foreground: 240 10% 96%;
 
-    --primary: 339 40% 37%; /* #853953 plum berry */
-    --primary-foreground: 180 3% 95%;
+    --primary: 348 78% 52%; /* #E42345 Glowing Berry Crimson */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 316 36% 28%; /* #612D53 dark magenta */
-    --secondary-foreground: 180 3% 95%;
+    --secondary: 240 6% 14%; /* #222227 Neutral Dark Surface */
+    --secondary-foreground: 240 10% 96%;
 
-    --muted: 316 36% 22%;
-    --muted-foreground: 0 0% 75%;
+    --muted: 240 6% 14%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 316 36% 28%;
-    --accent-foreground: 180 3% 95%;
+    --accent: 240 6% 16%;
+    --accent-foreground: 240 10% 96%;
 
-    --destructive: 339 40% 37%;
-    --destructive-foreground: 180 3% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 240 10% 96%;
 
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
-    --ring: 339 40% 37%;
+    --border: 240 6% 16%;
+    --input: 240 6% 16%;
+    --ring: 348 78% 52%;
   }
 }
 
