@@ -53,10 +53,10 @@ export default function AdvancedAnalyticsPage() {
       if (selectedStage) query += `&dealStage=${encodeURIComponent(selectedStage)}`;
 
       const [salesRes, leadsRes, dealsRes, teamRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/v1/analytics/sales${query}`, { headers }),
-        fetch(`http://localhost:5000/api/v1/analytics/leads${query}`, { headers }),
-        fetch(`http://localhost:5000/api/v1/analytics/deals${query}`, { headers }),
-        fetch(`http://localhost:5000/api/v1/analytics/team${query}`, { headers }),
+        fetch(`/api/v1/analytics/sales${query}`, { headers }),
+        fetch(`/api/v1/analytics/leads${query}`, { headers }),
+        fetch(`/api/v1/analytics/deals${query}`, { headers }),
+        fetch(`/api/v1/analytics/team${query}`, { headers }),
       ]);
 
       const [salesJson, leadsJson, dealsJson, teamJson] = await Promise.all([
