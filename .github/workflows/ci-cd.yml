@@ -10,6 +10,9 @@ jobs:
   frontend-build:
     name: Frontend CI (Next.js 15)
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+      JWT_SECRET: "dummy_ci_secret"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -39,6 +42,9 @@ jobs:
   backend-build:
     name: Backend CI (Express Node.js)
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+      JWT_SECRET: "dummy_ci_secret"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
