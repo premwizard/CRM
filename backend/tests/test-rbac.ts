@@ -1,6 +1,6 @@
-import { normalizeRole } from "./middleware/rbac";
-import { db } from "./config/db";
-import { generateToken } from "./utils/auth";
+import { normalizeRole } from "../src/middleware/rbac";
+import { db } from "../src/config/db";
+import { generateToken } from "../src/utils/auth";
 import { Role } from "@prisma/client";
 
 async function runRbacTests() {

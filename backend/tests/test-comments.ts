@@ -1,5 +1,5 @@
-import { db } from "./config/db";
-import { generateToken } from "./utils/auth";
+import { db } from "../src/config/db";
+import { generateToken } from "../src/utils/auth";
 import { NotificationType } from "@prisma/client";
 
 async function runCommentTests() {
@@ -180,7 +180,7 @@ async function runCommentTests() {
     const attemptEditByOther = await db.comment.findFirst({
       where: { id: comment1.id, organizationId: orgA.id },
     });
-    const isArunAuthor = attemptEditByOther?.authorId === userArun.id; // Arun is NOT the author
+    const isArunAuthor = attemptEditByOther?.authorId === userArun.id;
     if (isArunAuthor) {
       throw new Error("Test 8 Failed: Non-author was falsely recognized as comment author");
     }

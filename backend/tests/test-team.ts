@@ -1,6 +1,6 @@
-import { db } from "./config/db";
+import { db } from "../src/config/db";
 import { MemberRole, Role } from "@prisma/client";
-import { generateToken } from "./utils/auth";
+import { generateToken } from "../src/utils/auth";
 
 async function runTeamTests() {
   console.log("--- Starting Team Management Integration & Authorization Tests ---");

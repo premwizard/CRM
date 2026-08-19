@@ -1,5 +1,5 @@
-import { db } from "./config/db";
-import { storageProvider, isDangerousExtension, MAX_FILE_SIZE } from "./services/storage";
+import { db } from "../src/config/db";
+import { storageProvider, isDangerousExtension, MAX_FILE_SIZE } from "../src/services/storage";
 
 async function runAttachmentTests() {
   console.log("=== Starting CRM Attachments System Automated Test Suite ===");

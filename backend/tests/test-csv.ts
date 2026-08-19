@@ -1,5 +1,5 @@
-import { parseCsvString } from "./utils/csv-parser";
-import { db } from "./config/db";
+import { parseCsvString } from "../src/utils/csv-parser";
+import { db } from "../src/config/db";
 
 async function runCsvTests() {
   console.log("--- Starting CSV Import & Export Verification Tests ---");

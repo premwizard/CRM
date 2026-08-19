@@ -1,5 +1,5 @@
-import { db } from "./config/db";
-import { normalizeRole } from "./middleware/rbac";
+import { db } from "../src/config/db";
+import { normalizeRole } from "../src/middleware/rbac";
 
 async function runCrmConfigTests() {
   console.log("=== Starting Custom CRM Settings System Automated Test Suite ===");

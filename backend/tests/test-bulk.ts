@@ -1,4 +1,4 @@
-import { db } from "./config/db";
+import { db } from "../src/config/db";
 import { LeadStatus, DealStage } from "@prisma/client";
 
 async function testBulkOperations() {

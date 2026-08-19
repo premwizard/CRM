@@ -1,5 +1,5 @@
-import { db } from "./config/db";
-import { generateToken } from "./utils/auth";
+import { db } from "../src/config/db";
+import { generateToken } from "../src/utils/auth";
 import { LeadStatus, DealStage } from "@prisma/client";
 
 async function runTenantIsolationTests() {

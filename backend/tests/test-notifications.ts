@@ -1,7 +1,7 @@
-import { db } from "./config/db";
-import { generateToken } from "./utils/auth";
+import { db } from "../src/config/db";
+import { generateToken } from "../src/utils/auth";
 import { NotificationType, LeadStatus, DealStage } from "@prisma/client";
-import { createNotification } from "./services/notifications";
+import { createNotification } from "../src/services/notifications";
 
 async function runNotificationTests() {
   console.log("=== Starting Centralized Notification System Automated Test Suite ===");

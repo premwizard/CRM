@@ -1,5 +1,5 @@
-import { db } from "./config/db";
-import { emailService } from "./services/email";
+import { db } from "../src/config/db";
+import { emailService } from "../src/services/email";
 import { ActivityType } from "@prisma/client";
 
 async function runEmailTests() {
@@ -67,7 +67,7 @@ async function runEmailTests() {
     }
     console.log("✔ Test 3 Passed: Provider error handling sanitized without key exposure");
 
-        // 5. Test 4: Automatic CRM EMAIL Activity Creation
+    // 5. Test 4: Automatic CRM EMAIL Activity Creation
     const testDeal = await db.deal.create({
       data: {
         organizationId: orgA.id,

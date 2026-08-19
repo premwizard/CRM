@@ -1,4 +1,4 @@
-import { db } from "./config/db";
+import { db } from "../src/config/db";
 import { MeetingStatus, ActivityType } from "@prisma/client";
 
 async function runMeetingTests() {
@@ -161,7 +161,7 @@ async function runMeetingTests() {
     console.log("✔ Test 5 Passed: Calendar query filter returned expected events");
 
     // 8. Test 9: Permissions Enforcement (Non-organizer check)
-    const isArunOrganizer = meeting1.organizerId === userArun.id; // Arun is NOT organizer
+    const isArunOrganizer = meeting1.organizerId === userArun.id;
     if (isArunOrganizer) {
       throw new Error("Test 9 Failed: Non-organizer was falsely recognized as meeting owner");
     }

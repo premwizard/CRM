@@ -70,3 +70,9 @@ jobs:
         run: |
           cd backend
           npx tsc --noEmit
+
+      - name: Build Express API Server
+        run: |
+          cd backend
+          npm run build
+

@@ -1,6 +1,6 @@
-import { db } from "./config/db";
-import { logAudit } from "./services/audit";
-import { normalizeRole } from "./middleware/rbac";
+import { db } from "../src/config/db";
+import { logAudit } from "../src/services/audit";
+import { normalizeRole } from "../src/middleware/rbac";
 
 async function runAuditTests() {
   console.log("=== Starting Audit Logs System Automated Test Suite ===");
@@ -153,10 +153,8 @@ async function runAuditTests() {
     console.log("✔ Test 8 Passed: Unauthorized role (SALES_REP) denied access to audit logs");
 
     // 10. Test 9: Verify Audit Logs Immutability (Read-Only)
-    // Verify no update/delete model endpoints exist by attempting forbidden operation handling
     const rawModel: any = db.auditLog;
     if (typeof rawModel.deleteMany === "function") {
-      // Normal database cleanup method exists, but API endpoints do not expose PUT/DELETE
       console.log("✔ Test 9 Passed: Verified audit logs API is read-only (no modification/deletion API routes exist)");
     }
 
