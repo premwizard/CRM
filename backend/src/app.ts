@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import companyRoutes from "./routes/companies";
@@ -24,17 +25,25 @@ import meetingRoutes from "./routes/meetings";
 import analyticsRoutes from "./routes/analytics";
 import crmConfigRoutes from "./routes/crmConfig";
 import { db } from "./config/db";
+import { logger } from "./utils/logger";
+import { errorHandler } from "./middleware/error";
+import { apiRateLimiter, authRateLimiter } from "./middleware/rateLimiter";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Security & Base Middleware
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// General API Rate Limiting
+app.use("/api/v1", apiRateLimiter);
+
 // API v1 Routes
-app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/auth", authRateLimiter, authRoutes);
 app.use("/api/v1/companies", companyRoutes);
 app.use("/api/v1/contacts", contactRoutes);
 app.use("/api/v1/leads", leadRoutes);
@@ -72,7 +81,7 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 // GET /api/v1/dashboard
-app.get("/api/v1/dashboard", async (req, res) => {
+app.get("/api/v1/dashboard", async (req, res, next) => {
   try {
     const totalContacts = await db.contact.count().catch(() => 0);
     const totalCompanies = await db.company.count().catch(() => 0);
@@ -95,12 +104,18 @@ app.get("/api/v1/dashboard", async (req, res) => {
       },
     });
   } catch (err) {
-    return res.status(500).json({ success: false, error: "Dashboard error" });
+    next(err);
   }
 });
 
-app.listen(PORT, () => {
-  console.log(
-    `IC CRM Express Backend server listening on http://localhost:${PORT}`,
-  );
-});
+// Centralized Error Handling Middleware
+app.use(errorHandler);
+
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    logger.info(`IC CRM Express Backend server listening on http://localhost:${PORT}`, { port: PORT });
+  });
+}
+
+export default app;
+
