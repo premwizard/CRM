@@ -7,11 +7,11 @@ on:
     branches: [ main, master ]
 
 jobs:
-  frontend-build:
+  frontend-ci:
     name: Frontend CI (Next.js 15)
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+      DATABASE_URL: "postgresql://postgres:password@localhost:5432/iccrm_db?schema=public"
       JWT_SECRET: "dummy_ci_secret"
     steps:
       - name: Checkout Code
@@ -34,17 +34,45 @@ jobs:
           cd frontend
           npx prisma generate
 
+      - name: Next.js ESLint Check
+        run: |
+          cd frontend
+          npm run lint
+
       - name: TypeScript Type Check
         run: |
           cd frontend
           npx tsc --noEmit
 
-  backend-build:
-    name: Backend CI (Express Node.js)
+      - name: Build Next.js Web App
+        run: |
+          cd frontend
+          npm run build
+
+  backend-ci:
+    name: Backend CI (Express & Integration Tests)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: iccrm_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
-      JWT_SECRET: "dummy_ci_secret"
+      DATABASE_URL: "postgresql://postgres:password@localhost:5432/iccrm_db?schema=public"
+      JWT_SECRET: "ci_secret_test_key_12345"
+      NODE_ENV: "test"
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -66,13 +94,29 @@ jobs:
           cd backend
           npx prisma validate
 
+      - name: Generate Prisma Client
+        run: |
+          cd backend
+          npx prisma generate
+
+      - name: Push Database Schema to Postgres
+        run: |
+          cd backend
+          npx prisma db push --skip-generate
+
       - name: TypeScript Type Check
         run: |
           cd backend
           npx tsc --noEmit
 
+      - name: Run Backend Integration Test Suite
+        run: |
+          cd backend
+          npm test
+
       - name: Build Express API Server
         run: |
           cd backend
           npm run build
+
 
